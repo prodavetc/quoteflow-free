@@ -71,5 +71,3 @@ def request_row(submission):
     return json.loads(wp("eval", f"""global $wpdb;
         echo wp_json_encode($wpdb->get_results("SELECT * FROM {{$wpdb->prefix}}qf_requests WHERE submission_id = '{submission}'"));
     """))
-
-
