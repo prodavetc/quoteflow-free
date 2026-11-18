@@ -29,7 +29,8 @@ final class Pages {
 			try {
 				$request_id = (int) self::input( INPUT_POST, 'request_id' );
 				if ( $request_id > 0 ) {
-					$token = Requests::respond( $request_id, self::input( INPUT_POST, 'total' ) );
+					$totals = filter_input( INPUT_POST, 'totals', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+					$token  = Requests::respond( $request_id, is_array( $totals ) ? $totals : self::input( INPUT_POST, 'total' ) );
 				} else {
 					$token = Offers::create(
 						(int) self::input( INPUT_POST, 'product_id' ),
@@ -88,7 +89,12 @@ final class Pages {
 					<tr>
 						<td>#<?php echo (int) $request->id; ?><br><?php echo esc_html( $request->created_at ); ?> UTC</td>
 						<td><?php echo esc_html( $request->email ); ?></td>
-						<td><?php echo esc_html( $request->product_label ); ?> × <?php echo (int) $request->quantity; ?><br><?php echo nl2br( esc_html( $request->note ) ); ?></td>
+						<td>
+							<?php foreach ( Offers::items( $request ) as $item ) : ?>
+								<p><?php echo esc_html( $item['product_label'] ); ?> × <?php echo (int) $item['quantity']; ?></p>
+							<?php endforeach; ?>
+							<?php echo nl2br( esc_html( $request->note ) ); ?>
+						</td>
 						<td>
 							<?php if ( $request->offer_id ) : ?>
 								<p><?php echo wp_kses_post( wc_price( $request->total, array( 'currency' => $request->currency ) ) ); ?>
@@ -98,8 +104,14 @@ final class Pages {
 								<?php wp_nonce_field( 'qf_create_offer' ); ?>
 								<input type="hidden" name="request_id" value="<?php echo (int) $request->id; ?>">
 								<?php if ( ! $request->offer_id ) : ?>
-									<p><label><?php esc_html_e( 'Negotiated total', 'quoteflow-free' ); ?>
-										<input name="total" inputmode="decimal" required></label></p>
+									<?php $items = Offers::items( $request ); ?>
+									<?php foreach ( $items as $position => $item ) : ?>
+										<p><label>
+											<?php echo esc_html( $item['product_label'] ); ?>
+											<?php esc_html_e( 'Line total', 'quoteflow-free' ); ?>
+											<input name="<?php echo esc_attr( count( $items ) === 1 ? 'total' : "totals[{$position}]" ); ?>" inputmode="decimal" required>
+										</label></p>
+									<?php endforeach; ?>
 								<?php endif; ?>
 								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'Recover private link', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
 							</form>
@@ -177,7 +189,22 @@ final class Pages {
 		<body>
 		<main>
 			<h1><?php esc_html_e( 'Your offer', 'quoteflow-free' ); ?></h1>
-			<p><?php echo esc_html( $offer->product_label ); ?> × <?php echo (int) $offer->quantity; ?></p>
+			<table>
+				<thead><tr>
+					<th scope="col"><?php esc_html_e( 'Product', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Line total', 'quoteflow-free' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php foreach ( Offers::items( $offer ) as $item ) : ?>
+					<tr>
+						<td><?php echo esc_html( $item['product_label'] ); ?></td>
+						<td><?php echo (int) $item['quantity']; ?></td>
+						<td><?php echo wp_kses_post( wc_price( $item['total'], array( 'currency' => $offer->currency ) ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
 			<p><?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
 			<form method="post">
 				<?php wp_nonce_field( 'qf_accept_' . $token, 'qf_nonce', false ); ?>

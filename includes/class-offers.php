@@ -29,6 +29,7 @@ final class Offers {
 				state varchar(16) NOT NULL,
 				product_id bigint unsigned NOT NULL,
 				product_label text NOT NULL,
+				items_json longtext DEFAULT NULL,
 				quantity int unsigned NOT NULL,
 				total decimal(20,6) NOT NULL,
 				currency char(3) NOT NULL,
@@ -46,27 +47,99 @@ final class Offers {
 	}
 
 	public static function create( int $product_id, int $quantity, string $total, string $email, int $request_id = 0, ?string $token = null ): string {
-		global $wpdb;
-		$product = self::product( $product_id, $quantity );
-		$decimals = wc_get_price_decimals();
-		if ( $decimals > 6 || ! preg_match( '/^[0-9]{1,12}(?:\.[0-9]{1,6})?$/D', $total )
-			|| ( str_contains( $total, '.' ) && strlen( explode( '.', $total )[1] ) > $decimals )
-			|| '' === trim( $total, '0.' ) || ! is_email( $email ) || strlen( $email ) > 254 ) {
-			throw new RuntimeException( __( 'Enter a valid positive total and billing email.', 'quoteflow-free' ) );
-		}
+		return self::create_items( array( array( 'product_id' => $product_id, 'quantity' => $quantity, 'total' => $total ) ), $email, $request_id, $token );
+	}
 
-		$token   = $token ?? bin2hex( random_bytes( 32 ) );
-		$result  = $wpdb->insert(
+	public static function snapshot( array $items ): array {
+		if ( ! $items || count( $items ) > 20 || ! array_is_list( $items ) ) {
+			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) );
+		}
+		$snapshot = array();
+		$seen     = array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['product_id'], $item['quantity'] )
+				|| ! is_int( $item['product_id'] ) || ! is_int( $item['quantity'] )
+				|| isset( $seen[ $item['product_id'] ] ) ) {
+				throw new RuntimeException( __( 'Each product must appear once with a whole quantity.', 'quoteflow-free' ) );
+			}
+			$product    = self::product( $item['product_id'], $item['quantity'] );
+			$snapshot[] = array(
+				'product_id'    => $product->get_id(),
+				'product_label' => $product->get_name(),
+				'quantity'      => $item['quantity'],
+			);
+			$seen[ $item['product_id'] ] = true;
+		}
+		return $snapshot;
+	}
+
+	public static function items( object $record ): array {
+		if ( null !== ( $record->items_json ?? null ) ) {
+			$items = json_decode( $record->items_json, true );
+			if ( ! is_array( $items ) || ! $items || ! array_is_list( $items ) || count( $items ) > 20 ) {
+				throw self::reconciliation_required();
+			}
+			return $items;
+		}
+		// Records created before multiline support keep their original snapshot.
+		$item = array(
+			'product_id'    => (int) $record->product_id,
+			'product_label' => $record->product_label,
+			'quantity'      => (int) $record->quantity,
+		);
+		if ( isset( $record->total ) ) {
+			$item['total'] = $record->total;
+		}
+		return array( $item );
+	}
+
+	private static function amount( string $value ): int {
+		$parts    = explode( '.', $value );
+		$decimals = wc_get_price_decimals();
+		if ( $decimals > 6 || ! preg_match( '/^[0-9]{1,12}(?:\.[0-9]{1,6})?$/D', $value )
+			|| strlen( $parts[1] ?? '' ) > $decimals || '' === trim( $value, '0.' ) ) {
+			throw new RuntimeException( __( 'Enter a valid positive total for each product.', 'quoteflow-free' ) );
+		}
+		return (int) ( $parts[0] . str_pad( $parts[1] ?? '', 6, '0' ) );
+	}
+
+	private static function decimal( int $amount ): string {
+		return sprintf( '%d.%06d', intdiv( $amount, 1000000 ), $amount % 1000000 );
+	}
+
+	public static function create_items( array $items, string $email, int $request_id = 0, ?string $token = null ): string {
+		global $wpdb;
+		$snapshot = self::snapshot( $items );
+		if ( ! is_email( $email ) || strlen( $email ) > 254 ) {
+			throw new RuntimeException( __( 'Enter a valid billing email.', 'quoteflow-free' ) );
+		}
+		$sum = 0;
+		foreach ( $snapshot as $position => &$item ) {
+			if ( ! isset( $items[ $position ]['total'] ) || ! is_string( $items[ $position ]['total'] ) ) {
+				throw new RuntimeException( __( 'Enter a total for each product.', 'quoteflow-free' ) );
+			}
+			$amount        = self::amount( $items[ $position ]['total'] );
+			$sum          += $amount;
+			$item['total'] = self::decimal( $amount );
+			if ( $sum > 999999999999999999 ) {
+				throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
+			}
+		}
+		unset( $item );
+		$first  = $snapshot[0];
+		$token  = $token ?? bin2hex( random_bytes( 32 ) );
+		$result = $wpdb->insert(
 			self::table(),
 			array(
 				'request_id'    => $request_id > 0 ? $request_id : null,
 				'token_hash'    => hash( 'sha256', $token ),
 				'conversion_id' => wp_generate_uuid4(),
 				'state'         => 'offered',
-				'product_id'    => $product_id,
-				'product_label' => $product->get_name(),
-				'quantity'      => $quantity,
-				'total'         => $total,
+				'product_id'    => $first['product_id'],
+				'product_label' => $first['product_label'],
+				'quantity'      => $first['quantity'],
+				'items_json'    => wp_json_encode( $snapshot ),
+				'total'         => self::decimal( $sum ),
 				'currency'      => get_woocommerce_currency(),
 				'email'         => $email,
 				'expires_at'    => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
@@ -129,7 +202,9 @@ final class Offers {
 			if ( 'creating' === $offer->state ) {
 				$order = self::recover( $offer );
 			} elseif ( 'offered' === $offer->state ) {
-				$product = self::product( (int) $offer->product_id, (int) $offer->quantity );
+				foreach ( self::items( $offer ) as $item ) {
+					self::product( (int) $item['product_id'], (int) $item['quantity'] );
+				}
 				if ( get_woocommerce_currency() !== $offer->currency ) {
 					throw new RuntimeException( __( 'The store currency changed. Ask for a new offer.', 'quoteflow-free' ) );
 				}
@@ -142,7 +217,7 @@ final class Offers {
 					throw self::reconciliation_required();
 				}
 				try {
-					$order = self::create_order( $offer, $product );
+					$order = self::create_order( $offer );
 				} catch ( Throwable $e ) {
 					throw self::reconciliation_required();
 				}
@@ -163,7 +238,7 @@ final class Offers {
 		}
 	}
 
-	private static function create_order( object $offer, \WC_Product $product ): WC_Order {
+	private static function create_order( object $offer ): WC_Order {
 		$order = new WC_Order();
 		$order->set_status( 'pending' );
 		$order->set_created_via( 'quoteflow' );
@@ -171,11 +246,14 @@ final class Offers {
 		$order->set_billing_email( $offer->email );
 		$order->set_currency( $offer->currency );
 		$order->set_prices_include_tax( false );
-		$order->add_product(
-			$product,
-			(int) $offer->quantity,
-			array( 'name' => $offer->product_label, 'subtotal' => $offer->total, 'total' => $offer->total )
-		);
+		foreach ( self::items( $offer ) as $item ) {
+			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
+			$order->add_product(
+				$product,
+				(int) $item['quantity'],
+				array( 'name' => $item['product_label'], 'subtotal' => $item['total'], 'total' => $item['total'] )
+			);
+		}
 		$order->update_meta_data( '_qf_conversion_id', $offer->conversion_id );
 		$order->calculate_totals( false );
 		self::verify_order( $offer, $order );
@@ -210,16 +288,22 @@ final class Offers {
 	}
 
 	private static function verify_order( object $offer, WC_Order $order ): void {
-		$items = array_values( $order->get_items() );
-		if ( ! $order->get_id() || 1 !== count( $items )
-			|| (int) $offer->product_id !== $items[0]->get_product_id()
-			|| (int) $offer->quantity !== $items[0]->get_quantity()
+		$items    = array_values( $order->get_items() );
+		$expected = self::items( $offer );
+		if ( ! $order->get_id() || count( $expected ) !== count( $items )
 			|| $offer->conversion_id !== $order->get_meta( '_qf_conversion_id' )
 			|| $offer->currency !== $order->get_currency()
 			|| $offer->email !== $order->get_billing_email()
 			|| 0 !== $order->get_customer_id()
 			|| wc_format_decimal( $offer->total, 6 ) !== wc_format_decimal( $order->get_total(), 6 ) ) {
 			throw self::reconciliation_required();
+		}
+		foreach ( $expected as $position => $line ) {
+			if ( (int) $line['product_id'] !== $items[ $position ]->get_product_id()
+				|| (int) $line['quantity'] !== $items[ $position ]->get_quantity()
+				|| wc_format_decimal( $line['total'], 6 ) !== wc_format_decimal( $items[ $position ]->get_total(), 6 ) ) {
+				throw self::reconciliation_required();
+			}
 		}
 	}
 
@@ -237,7 +321,9 @@ final class Offers {
 				throw self::reconciliation_required();
 			}
 			self::verify_order( $offer, $order );
-			self::product( (int) $offer->product_id, (int) $offer->quantity );
+			foreach ( self::items( $offer ) as $item ) {
+				self::product( (int) $item['product_id'], (int) $item['quantity'] );
+			}
 		} catch ( RuntimeException $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 		}

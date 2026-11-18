@@ -20,6 +20,7 @@ final class Requests {
 				rate_key char(64) NOT NULL,
 				product_id bigint unsigned NOT NULL,
 				product_label text NOT NULL,
+				items_json longtext DEFAULT NULL,
 				quantity int unsigned NOT NULL,
 				email varchar(254) NOT NULL,
 				note text NOT NULL,
@@ -32,12 +33,22 @@ final class Requests {
 	}
 
 	public static function submit( string $submission, int $product_id, int $quantity, string $email, string $note, string $address ): void {
+		self::submit_items( $submission, array( array( 'product_id' => $product_id, 'quantity' => $quantity ) ), $email, $note, $address );
+	}
+
+	public static function submit_items( string $submission, array $items, string $email, string $note, string $address ): void {
 		global $wpdb;
 		if ( ! wp_is_uuid( $submission ) || ! is_email( $email ) || strlen( $email ) > 254 || mb_strlen( $note, 'UTF-8' ) > 2000 ) {
 			throw new RuntimeException( __( 'Enter a valid email and a note of up to 2000 characters.', 'quoteflow-free' ) );
 		}
-		$product = Offers::product( $product_id, $quantity );
-		$payload = hash( 'sha256', wp_json_encode( array( $product_id, $quantity, $email, $note ) ) );
+		$snapshot = Offers::snapshot( $items );
+		$identity = array();
+		foreach ( $snapshot as $item ) {
+			$identity[] = array( $item['product_id'], $item['quantity'] );
+		}
+		// Preserve the hash format of earlier single-product submissions.
+		$data    = count( $identity ) === 1 ? array( $identity[0][0], $identity[0][1], $email, $note ) : array( $identity, $email, $note );
+		$payload = hash( 'sha256', wp_json_encode( $data ) );
 		$rate    = hash_hmac( 'sha256', $address . '|' . (int) floor( time() / 600 ), wp_salt( 'nonce' ) );
 		$lock    = 'qf_request_' . substr( $rate, 0, 40 );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
@@ -61,9 +72,10 @@ final class Requests {
 					'submission_id' => $submission,
 					'payload_hash'  => $payload,
 					'rate_key'      => $rate,
-					'product_id'    => $product_id,
-					'product_label' => $product->get_name(),
-					'quantity'      => $quantity,
+					'product_id'    => $snapshot[0]['product_id'],
+					'product_label' => $snapshot[0]['product_label'],
+					'quantity'      => $snapshot[0]['quantity'],
+					'items_json'    => wp_json_encode( $snapshot ),
 					'email'         => $email,
 					'note'          => $note,
 					'created_at'    => gmdate( 'Y-m-d H:i:s' ),
@@ -91,7 +103,7 @@ final class Requests {
 		);
 	}
 
-	public static function respond( int $request_id, string $total ): string {
+	public static function respond( int $request_id, string|array $total ): string {
 		global $wpdb;
 		$table   = $wpdb->prefix . 'qf_requests';
 		$request = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $request_id ) );
@@ -113,7 +125,16 @@ final class Requests {
 				}
 				return $token;
 			}
-			return Offers::create( (int) $request->product_id, (int) $request->quantity, $total, $request->email, $request_id, $token );
+			$items  = Offers::items( $request );
+			$totals = is_array( $total ) ? $total : array( $total );
+			if ( count( $items ) !== count( $totals ) || ! array_is_list( $totals ) ) {
+				throw new RuntimeException( __( 'Enter a total for each requested product.', 'quoteflow-free' ) );
+			}
+			foreach ( $items as $position => &$item ) {
+				$item['total'] = $totals[ $position ];
+			}
+			unset( $item );
+			return Offers::create_items( $items, $request->email, $request_id, $token );
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		}

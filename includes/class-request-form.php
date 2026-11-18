@@ -10,6 +10,13 @@ final class Request_Form {
 	public static function register(): void {
 		add_shortcode( 'quoteflow_request', array( self::class, 'shortcode' ) );
 		add_action( 'woocommerce_after_add_to_cart_form', array( self::class, 'product_form' ) );
+		add_action( 'woocommerce_after_cart', array( self::class, 'cart_form' ) );
+		add_filter(
+			'render_block_woocommerce/cart',
+			static function ( string $html ): string {
+				return $html . self::shortcode( array( 'cart' => 'yes' ) );
+			}
+		);
 		add_action( 'admin_post_qf_request', array( self::class, 'submit' ) );
 		add_action( 'admin_post_nopriv_qf_request', array( self::class, 'submit' ) );
 		add_action( 'template_redirect', array( self::class, 'prevent_cache' ) );
@@ -24,7 +31,7 @@ final class Request_Form {
 				return;
 			}
 		}
-		if ( is_product() || ( $post instanceof \WP_Post && has_shortcode( $post->post_content, 'quoteflow_request' ) ) ) {
+		if ( is_product() || is_cart() || ( $post instanceof \WP_Post && has_shortcode( $post->post_content, 'quoteflow_request' ) ) ) {
 			if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 				define( 'DONOTCACHEPAGE', true );
 			}
@@ -39,15 +46,35 @@ final class Request_Form {
 		}
 	}
 
+	public static function cart_form(): void {
+		echo self::shortcode( array( 'cart' => 'yes' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by renderer.
+	}
+
 	public static function shortcode( $attributes ): string {
-		$attributes = shortcode_atts( array( 'product_id' => get_the_ID() ), $attributes, 'quoteflow_request' );
+		$attributes = shortcode_atts( array( 'product_id' => get_the_ID(), 'cart' => 'no' ), $attributes, 'quoteflow_request' );
+		$cart       = 'yes' === $attributes['cart'];
+		$items      = array();
+		if ( $cart ) {
+			if ( ! WC()->cart || WC()->cart->is_empty() ) {
+				return '';
+			}
+			foreach ( WC()->cart->get_cart() as $line ) {
+				if ( (float) (int) $line['quantity'] !== (float) $line['quantity'] ) {
+					return '<p>' . esc_html__( 'Quote requests require whole quantities.', 'quoteflow-free' ) . '</p>';
+				}
+				$items[] = array( 'product_id' => (int) $line['product_id'], 'quantity' => (int) $line['quantity'] );
+			}
+		} else {
+			$items[] = array( 'product_id' => (int) $attributes['product_id'], 'quantity' => 1 );
+		}
 		try {
-			$product = Offers::product( (int) $attributes['product_id'], 1 );
+			$items = Offers::snapshot( $items );
 		} catch ( RuntimeException $e ) {
-			return '';
+			return $cart ? '<p>' . esc_html( $e->getMessage() ) . '</p>' : '';
 		}
 		$submission = wp_generate_uuid4();
 		$prefix     = 'qf-' . $submission;
+		$scope      = implode( '-', array_column( $items, 'product_id' ) );
 		ob_start();
 		?>
 		<section class="quoteflow-request" aria-labelledby="<?php echo esc_attr( $prefix ); ?>-title">
@@ -55,14 +82,22 @@ final class Request_Form {
 			<?php if ( isset( $_GET['qf_received'] ) && '1' === $_GET['qf_received'] ) : ?>
 				<p role="status"><?php esc_html_e( 'Your request was received. The store will contact you with an offer.', 'quoteflow-free' ); ?></p>
 			<?php endif; ?>
-			<p><?php echo esc_html( $product->get_name() ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="qf_request">
-				<input type="hidden" name="product_id" value="<?php echo (int) $product->get_id(); ?>">
+				<input type="hidden" name="request_cart" value="<?php echo $cart ? '1' : '0'; ?>">
 				<input type="hidden" name="submission_id" value="<?php echo esc_attr( $submission ); ?>">
-				<?php wp_nonce_field( 'qf_request_' . $product->get_id() . '_' . $submission, 'qf_request_nonce', false ); ?>
-				<p><label for="<?php echo esc_attr( $prefix ); ?>-quantity"><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?></label>
-					<input id="<?php echo esc_attr( $prefix ); ?>-quantity" name="quantity" type="number" min="1" max="<?php echo $product->is_sold_individually() ? 1 : 100; ?>" value="1" required></p>
+				<?php wp_nonce_field( 'qf_request_' . $scope . '_' . $submission, 'qf_request_nonce', false ); ?>
+				<?php foreach ( $items as $position => $item ) : ?>
+					<?php
+					$product        = wc_get_product( $item['product_id'] );
+					$product_field  = $cart ? "items[{$position}][product_id]" : 'product_id';
+					$quantity_field = $cart ? "items[{$position}][quantity]" : 'quantity';
+					?>
+					<p><?php echo esc_html( $item['product_label'] ); ?></p>
+					<input type="hidden" name="<?php echo esc_attr( $product_field ); ?>" value="<?php echo (int) $item['product_id']; ?>">
+					<p><label for="<?php echo esc_attr( $prefix . '-quantity-' . $position ); ?>"><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?></label>
+						<input id="<?php echo esc_attr( $prefix . '-quantity-' . $position ); ?>" name="<?php echo esc_attr( $quantity_field ); ?>" type="number" min="1" max="<?php echo $product->is_sold_individually() ? 1 : 100; ?>" value="<?php echo (int) $item['quantity']; ?>" required></p>
+				<?php endforeach; ?>
 				<p><label for="<?php echo esc_attr( $prefix ); ?>-email"><?php esc_html_e( 'Billing email', 'quoteflow-free' ); ?></label>
 					<input id="<?php echo esc_attr( $prefix ); ?>-email" name="email" type="email" autocomplete="email" maxlength="254" required></p>
 				<p><label for="<?php echo esc_attr( $prefix ); ?>-note"><?php esc_html_e( 'What do you need?', 'quoteflow-free' ); ?></label>
@@ -83,19 +118,23 @@ final class Request_Form {
 			wp_die( esc_html__( 'Method not allowed.', 'quoteflow-free' ), '', array( 'response' => 405 ) );
 		}
 		$submission = self::input( 'submission_id' );
-		$product_id = self::input( 'product_id' );
-		$quantity   = self::input( 'quantity' );
-		if ( ! wp_verify_nonce( self::input( 'qf_request_nonce' ), 'qf_request_' . $product_id . '_' . $submission ) ) {
+		$cart = '1' === self::input( 'request_cart' );
+		try {
+			$items = self::posted_items( $cart );
+		} catch ( RuntimeException $e ) {
+			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => 422 ) );
+		}
+		$scope = implode( '-', array_column( $items, 'product_id' ) );
+		if ( ! wp_verify_nonce( self::input( 'qf_request_nonce' ), 'qf_request_' . $scope . '_' . $submission ) ) {
 			wp_die( esc_html__( 'Reload the form to try again.', 'quoteflow-free' ), '', array( 'response' => 403 ) );
 		}
-		if ( ! ctype_digit( $product_id ) || ! ctype_digit( $quantity ) || '' !== self::input( 'website' ) ) {
+		if ( '' !== self::input( 'website' ) ) {
 			wp_die( esc_html__( 'The request is invalid.', 'quoteflow-free' ), '', array( 'response' => 422 ) );
 		}
 		try {
-			Requests::submit(
+			Requests::submit_items(
 				$submission,
-				(int) $product_id,
-				(int) $quantity,
+				$items,
 				self::input( 'email' ),
 				sanitize_textarea_field( self::input( 'note' ) ),
 				(string) ( $_SERVER['REMOTE_ADDR'] ?? '' )
@@ -107,8 +146,28 @@ final class Request_Form {
 			}
 			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => $status ) );
 		}
-		wp_safe_redirect( add_query_arg( 'qf_received', '1', get_permalink( (int) $product_id ) ), 303 );
+		$return_url = $cart ? wc_get_cart_url() : get_permalink( $items[0]['product_id'] );
+		wp_safe_redirect( add_query_arg( 'qf_received', '1', $return_url ), 303 );
 		exit;
+	}
+
+	private static function posted_items( bool $cart ): array {
+		$raw = $cart ? filter_input( INPUT_POST, 'items', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) : array(
+			array( 'product_id' => self::input( 'product_id' ), 'quantity' => self::input( 'quantity' ) ),
+		);
+		if ( ! is_array( $raw ) || ! $raw || count( $raw ) > 20 || ! array_is_list( $raw ) ) {
+			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) );
+		}
+		$items = array();
+		foreach ( $raw as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['product_id'], $item['quantity'] )
+				|| ! is_string( $item['product_id'] ) || ! is_string( $item['quantity'] )
+				|| ! ctype_digit( $item['product_id'] ) || ! ctype_digit( $item['quantity'] ) ) {
+				throw new RuntimeException( __( 'The request is invalid.', 'quoteflow-free' ) );
+			}
+			$items[] = array( 'product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity'] );
+		}
+		return $items;
 	}
 
 	private static function input( string $key ): string {
