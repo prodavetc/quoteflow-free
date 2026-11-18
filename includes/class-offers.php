@@ -23,6 +23,7 @@ final class Offers {
 		dbDelta(
 			"CREATE TABLE {$table} (
 				id bigint unsigned NOT NULL AUTO_INCREMENT,
+				request_id bigint unsigned DEFAULT NULL,
 				token_hash char(64) NOT NULL,
 				conversion_id char(36) NOT NULL,
 				state varchar(16) NOT NULL,
@@ -37,13 +38,14 @@ final class Offers {
 				order_id bigint unsigned DEFAULT NULL,
 				PRIMARY KEY  (id),
 				UNIQUE KEY token_hash (token_hash),
+				UNIQUE KEY request_id (request_id),
 				UNIQUE KEY conversion_id (conversion_id),
 				UNIQUE KEY order_id (order_id)
 			) ENGINE=InnoDB {$collate};"
 		);
 	}
 
-	public static function create( int $product_id, int $quantity, string $total, string $email ): string {
+	public static function create( int $product_id, int $quantity, string $total, string $email, int $request_id = 0, ?string $token = null ): string {
 		global $wpdb;
 		$product = self::product( $product_id, $quantity );
 		$decimals = wc_get_price_decimals();
@@ -53,10 +55,11 @@ final class Offers {
 			throw new RuntimeException( __( 'Enter a valid positive total and billing email.', 'quoteflow-free' ) );
 		}
 
-		$token   = bin2hex( random_bytes( 32 ) );
+		$token   = $token ?? bin2hex( random_bytes( 32 ) );
 		$result  = $wpdb->insert(
 			self::table(),
 			array(
+				'request_id'    => $request_id > 0 ? $request_id : null,
 				'token_hash'    => hash( 'sha256', $token ),
 				'conversion_id' => wp_generate_uuid4(),
 				'state'         => 'offered',
@@ -88,7 +91,7 @@ final class Offers {
 		return strtotime( $offer->expires_at . ' UTC' ) <= time();
 	}
 
-	private static function product( int $product_id, int $quantity ): \WC_Product {
+	public static function product( int $product_id, int $quantity ): \WC_Product {
 		$product = wc_get_product( $product_id );
 		if ( $quantity < 1 || $quantity > 100 || wc_tax_enabled() || ! $product
 			|| ! $product->is_type( 'simple' ) || ! $product->is_virtual()

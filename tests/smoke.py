@@ -46,6 +46,8 @@ def accept(link, nonce):
     return status, location
 
 
+wp("option", "update", "woocommerce_coming_soon", "no")
+
 for mode in ("enable", "disable"):
     wp("wc", "hpos", "sync")
     wp("wc", "hpos", mode)

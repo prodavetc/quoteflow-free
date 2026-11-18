@@ -27,12 +27,17 @@ final class Pages {
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 			check_admin_referer( 'qf_create_offer' );
 			try {
-				$token = Offers::create(
-					(int) self::input( INPUT_POST, 'product_id' ),
-					(int) self::input( INPUT_POST, 'quantity' ),
-					self::input( INPUT_POST, 'total' ),
-					self::input( INPUT_POST, 'email' )
-				);
+				$request_id = (int) self::input( INPUT_POST, 'request_id' );
+				if ( $request_id > 0 ) {
+					$token = Requests::respond( $request_id, self::input( INPUT_POST, 'total' ) );
+				} else {
+					$token = Offers::create(
+						(int) self::input( INPUT_POST, 'product_id' ),
+						(int) self::input( INPUT_POST, 'quantity' ),
+						self::input( INPUT_POST, 'total' ),
+						self::input( INPUT_POST, 'email' )
+					);
+				}
 				$link = add_query_arg( 'qf_offer', $token, home_url( '/' ) );
 			} catch ( RuntimeException $e ) {
 				$error = $e->getMessage();
@@ -40,7 +45,7 @@ final class Pages {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Create a QuoteFlow offer', 'quoteflow-free' ); ?></h1>
+			<h1><?php esc_html_e( 'QuoteFlow', 'quoteflow-free' ); ?></h1>
 			<p><?php esc_html_e( 'Use a simple virtual product in a store with taxes disabled. The offer expires in 24 hours.', 'quoteflow-free' ); ?></p>
 			<?php if ( $error ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
@@ -49,6 +54,8 @@ final class Pages {
 				<p><label for="qf-offer-link"><?php esc_html_e( 'Private link to share with the buyer', 'quoteflow-free' ); ?></label></p>
 				<input id="qf-offer-link" type="url" class="large-text" readonly value="<?php echo esc_attr( $link ); ?>">
 			<?php endif; ?>
+			<?php self::inbox(); ?>
+			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
 			<form method="post">
 				<?php wp_nonce_field( 'qf_create_offer' ); ?>
 				<p><label><?php esc_html_e( 'Product ID', 'quoteflow-free' ); ?> <input name="product_id" type="number" min="1" required></label></p>
@@ -59,6 +66,70 @@ final class Pages {
 			</form>
 		</div>
 		<?php
+	}
+
+	private static function inbox(): void {
+		$page     = max( 1, (int) self::input( INPUT_GET, 'qf_page' ) );
+		$requests = Requests::inbox( $page );
+		?>
+		<h2><?php esc_html_e( 'Quote requests', 'quoteflow-free' ); ?></h2>
+		<?php if ( ! $requests ) : ?>
+			<p><?php esc_html_e( 'No requests on this page.', 'quoteflow-free' ); ?></p>
+		<?php else : ?>
+			<table class="widefat striped">
+				<thead><tr>
+					<th scope="col"><?php esc_html_e( 'Request', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Buyer', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Details', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Offer', 'quoteflow-free' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php foreach ( $requests as $request ) : ?>
+					<tr>
+						<td>#<?php echo (int) $request->id; ?><br><?php echo esc_html( $request->created_at ); ?> UTC</td>
+						<td><?php echo esc_html( $request->email ); ?></td>
+						<td><?php echo esc_html( $request->product_label ); ?> × <?php echo (int) $request->quantity; ?><br><?php echo nl2br( esc_html( $request->note ) ); ?></td>
+						<td>
+							<?php if ( $request->offer_id ) : ?>
+								<p><?php echo wp_kses_post( wc_price( $request->total, array( 'currency' => $request->currency ) ) ); ?>
+								· <?php echo esc_html( self::offer_status( $request ) ); ?></p>
+							<?php endif; ?>
+							<form method="post">
+								<?php wp_nonce_field( 'qf_create_offer' ); ?>
+								<input type="hidden" name="request_id" value="<?php echo (int) $request->id; ?>">
+								<?php if ( ! $request->offer_id ) : ?>
+									<p><label><?php esc_html_e( 'Negotiated total', 'quoteflow-free' ); ?>
+										<input name="total" inputmode="decimal" required></label></p>
+								<?php endif; ?>
+								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'Recover private link', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+		<p>
+			<?php if ( $page > 1 ) : ?>
+				<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_page' => $page - 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Previous requests', 'quoteflow-free' ); ?></a>
+			<?php endif; ?>
+			<?php if ( count( $requests ) === 20 ) : ?>
+				<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_page' => $page + 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Older requests', 'quoteflow-free' ); ?></a>
+			<?php endif; ?>
+		</p>
+		<?php
+	}
+
+	private static function offer_status( object $request ): string {
+		if ( 'offered' === $request->offer_state && Offers::expired( $request ) ) {
+			return __( 'Expired', 'quoteflow-free' );
+		}
+		$labels = array(
+			'offered'   => __( 'Awaiting acceptance', 'quoteflow-free' ),
+			'creating'  => __( 'Order awaiting review', 'quoteflow-free' ),
+			'converted' => __( 'Order created', 'quoteflow-free' ),
+		);
+		return $labels[ $request->offer_state ] ?? __( 'Awaiting review', 'quoteflow-free' );
 	}
 
 	public static function offer(): void {
