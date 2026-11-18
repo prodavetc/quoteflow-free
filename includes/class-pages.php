@@ -8,8 +8,13 @@ use Throwable;
 defined( 'ABSPATH' ) || exit;
 
 final class Pages {
+	private static string $token = '';
+	private static string $notice = '';
+	private static string $error = '';
+
 	public static function register(): void {
 		add_action( 'admin_menu', array( self::class, 'menu' ) );
+		add_action( 'admin_init', array( self::class, 'handle_submission' ) );
 		add_action( 'template_redirect', array( self::class, 'offer' ) );
 		add_action( 'woocommerce_before_pay_action', array( Offers::class, 'validate_payment' ) );
 	}
@@ -18,32 +23,55 @@ final class Pages {
 		add_submenu_page( 'woocommerce', 'QuoteFlow', 'QuoteFlow', 'manage_woocommerce', 'quoteflow', array( self::class, 'admin' ) );
 	}
 
+	public static function handle_submission(): void {
+		global $pagenow;
+		if ( 'admin.php' !== $pagenow || 'quoteflow' !== self::input( INPUT_GET, 'page' ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Access denied.', 'quoteflow-free' ), '', array( 'response' => 403 ) );
+		}
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+			try {
+				if ( 'email' === self::input( INPUT_POST, 'qf_action' ) ) {
+					self::$token = self::input( INPUT_POST, 'offer_token' );
+					$offer   = Offers::find( self::$token );
+					$attempt = (int) self::input( INPUT_POST, 'email_attempt' );
+					if ( ! $offer ) {
+						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+					}
+					check_admin_referer( 'qf_email_' . $offer->id . '_' . $attempt );
+					Offer_Email::send( self::$token, $attempt, '1' === self::input( INPUT_POST, 'confirm_retry' ) );
+					self::$notice = __( 'The mail service accepted the offer email. Receipt depends on the recipient mail server.', 'quoteflow-free' );
+				} else {
+					check_admin_referer( 'qf_create_offer' );
+					$request_id = (int) self::input( INPUT_POST, 'request_id' );
+					if ( $request_id > 0 ) {
+						$totals = filter_input( INPUT_POST, 'totals', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+						self::$token = Requests::respond( $request_id, is_array( $totals ) ? $totals : self::input( INPUT_POST, 'total' ) );
+					} else {
+						self::$token = Offers::create(
+							(int) self::input( INPUT_POST, 'product_id' ),
+							(int) self::input( INPUT_POST, 'quantity' ),
+							self::input( INPUT_POST, 'total' ),
+							self::input( INPUT_POST, 'email' )
+						);
+					}
+				}
+			} catch ( RuntimeException $e ) {
+				self::$error = $e->getMessage();
+			}
+		}
+	}
+
 	public static function admin(): void {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_die( esc_html__( 'Access denied.', 'quoteflow-free' ), '', array( 'response' => 403 ) );
 		}
-		$link  = '';
-		$error = '';
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
-			check_admin_referer( 'qf_create_offer' );
-			try {
-				$request_id = (int) self::input( INPUT_POST, 'request_id' );
-				if ( $request_id > 0 ) {
-					$totals = filter_input( INPUT_POST, 'totals', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-					$token  = Requests::respond( $request_id, is_array( $totals ) ? $totals : self::input( INPUT_POST, 'total' ) );
-				} else {
-					$token = Offers::create(
-						(int) self::input( INPUT_POST, 'product_id' ),
-						(int) self::input( INPUT_POST, 'quantity' ),
-						self::input( INPUT_POST, 'total' ),
-						self::input( INPUT_POST, 'email' )
-					);
-				}
-				$link = add_query_arg( 'qf_offer', $token, home_url( '/' ) );
-			} catch ( RuntimeException $e ) {
-				$error = $e->getMessage();
-			}
-		}
+		$token  = self::$token;
+		$error  = self::$error;
+		$notice = self::$notice;
+		$link   = $token && Offers::find( $token ) ? add_query_arg( 'qf_offer', $token, home_url( '/' ) ) : '';
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'QuoteFlow', 'quoteflow-free' ); ?></h1>
@@ -51,9 +79,13 @@ final class Pages {
 			<?php if ( $error ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
 			<?php endif; ?>
+			<?php if ( $notice ) : ?>
+				<div class="notice notice-success"><p><?php echo esc_html( $notice ); ?></p></div>
+			<?php endif; ?>
 			<?php if ( $link ) : ?>
 				<p><label for="qf-offer-link"><?php esc_html_e( 'Private link to share with the buyer', 'quoteflow-free' ); ?></label></p>
 				<input id="qf-offer-link" type="url" class="large-text" readonly value="<?php echo esc_attr( $link ); ?>">
+				<?php self::email_form( $token ); ?>
 			<?php endif; ?>
 			<?php self::inbox(); ?>
 			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
@@ -67,6 +99,44 @@ final class Pages {
 			</form>
 		</div>
 		<?php
+	}
+
+	private static function email_form( string $token ): void {
+		$offer = Offers::find( $token );
+		if ( ! $offer ) {
+			return;
+		}
+		?>
+		<p><?php echo esc_html( self::email_status( $offer->email_state ) ); ?></p>
+		<?php if ( 'accepted' === $offer->email_state || 'offered' !== $offer->state || Offers::expired( $offer ) ) : ?>
+			<?php return; ?>
+		<?php endif; ?>
+		<form method="post">
+			<?php wp_nonce_field( 'qf_email_' . $offer->id . '_' . $offer->email_attempts ); ?>
+			<input type="hidden" name="qf_action" value="email">
+			<input type="hidden" name="offer_token" value="<?php echo esc_attr( $token ); ?>">
+			<input type="hidden" name="email_attempt" value="<?php echo (int) $offer->email_attempts; ?>">
+			<p><?php
+				/* translators: %s: Buyer billing email. */
+				echo esc_html( sprintf( __( 'Send this offer to %s.', 'quoteflow-free' ), $offer->email ) );
+			?></p>
+			<?php if ( 'sending' === $offer->email_state ) : ?>
+				<p><label><input type="checkbox" name="confirm_retry" value="1" required>
+					<?php esc_html_e( 'I checked the mail logs and want to try sending again.', 'quoteflow-free' ); ?></label></p>
+			<?php endif; ?>
+			<button class="button" type="submit"><?php esc_html_e( 'Send offer by email', 'quoteflow-free' ); ?></button>
+		</form>
+		<?php
+	}
+
+	private static function email_status( string $state ): string {
+		$labels = array(
+			'idle'     => __( 'Offer email not requested.', 'quoteflow-free' ),
+			'sending'  => __( 'Email in progress or result unknown. Check the mail logs before retrying.', 'quoteflow-free' ),
+			'accepted' => __( 'Offer email accepted by the mail service.', 'quoteflow-free' ),
+			'failed'   => __( 'The mail service did not accept the offer email.', 'quoteflow-free' ),
+		);
+		return $labels[ $state ] ?? __( 'Email result unknown.', 'quoteflow-free' );
 	}
 
 	private static function inbox(): void {
@@ -99,6 +169,7 @@ final class Pages {
 							<?php if ( $request->offer_id ) : ?>
 								<p><?php echo wp_kses_post( wc_price( $request->total, array( 'currency' => $request->currency ) ) ); ?>
 								· <?php echo esc_html( self::offer_status( $request ) ); ?></p>
+								<p><?php echo esc_html( self::email_status( $request->email_state ) ); ?></p>
 							<?php endif; ?>
 							<form method="post">
 								<?php wp_nonce_field( 'qf_create_offer' ); ?>
@@ -113,7 +184,7 @@ final class Pages {
 										</label></p>
 									<?php endforeach; ?>
 								<?php endif; ?>
-								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'Recover private link', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
+								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'View link and email', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
 							</form>
 						</td>
 					</tr>

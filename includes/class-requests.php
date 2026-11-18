@@ -95,7 +95,7 @@ final class Requests {
 		$offers   = $wpdb->prefix . 'qf_offers';
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT r.*, o.id AS offer_id, o.state AS offer_state, o.total, o.currency, o.expires_at, o.order_id
+				"SELECT r.*, o.id AS offer_id, o.state AS offer_state, o.total, o.currency, o.expires_at, o.order_id, o.email_state
 				FROM {$requests} r LEFT JOIN {$offers} o ON o.request_id = r.id
 				ORDER BY r.id DESC LIMIT 20 OFFSET %d",
 				( max( 1, $page ) - 1 ) * 20
