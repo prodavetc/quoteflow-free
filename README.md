@@ -43,3 +43,16 @@ Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan e
 La primera cubre concurrencia, reintentos, recuperación de conversiones, falta de stock y expiración. La segunda recorre formularios públicos y de administración hasta el pago local, e incluye solicitudes y respuestas repetidas, permisos, validación y límite de solicitudes. La transferencia bancaria se confirma mediante una simulación local.
 
 Quedan pendientes productos físicos y variables, impuestos, integración nativa con otros bloques, envío de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
+
+## Desarrollo y producción
+
+El trabajo diario y las pruebas se realizan en `dev`. Los cambios se promueven a `main` mediante un pull request revisado cuando se aprueba una versión para producción. Las descargas estables se publican desde tags revisados de `main`. Los paquetes de desarrollo usan un canal beta o de desarrollo.
+
+Después de clonar el repositorio, activar la protección local.
+
+```sh
+git switch dev
+git config core.hooksPath .githooks
+```
+
+El hook local bloquea pushes a `main`, incluidos los intentos de borrado. La protección del servidor debe configurarse también en GitHub según las prestaciones del plan de la cuenta. En las aplicaciones desplegadas, la rama de producción se configura explícitamente como `main` y las pruebas usan entornos independientes.
