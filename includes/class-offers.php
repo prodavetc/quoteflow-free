@@ -50,7 +50,8 @@ final class Offers {
 				UNIQUE KEY token_hash (token_hash),
 				UNIQUE KEY request_id (request_id),
 				UNIQUE KEY conversion_id (conversion_id),
-				UNIQUE KEY order_id (order_id)
+				UNIQUE KEY order_id (order_id),
+				KEY email (email)
 			) ENGINE=InnoDB {$collate};"
 		);
 	}

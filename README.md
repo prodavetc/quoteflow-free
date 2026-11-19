@@ -13,7 +13,7 @@ La bandeja permite recuperar el enlace de una oferta creada desde una solicitud.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.7.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.8.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -59,6 +59,20 @@ Un bloqueo por oferta y el número de intento impiden que un doble clic o un for
 
 Los registros anteriores comienzan con el correo pendiente de solicitud. La actualización conserva los datos y espera una acción explícita del operador.
 
+## Privacidad: exportación y borrado
+
+QuoteFlow se integra en **Herramientas → Exportar datos personales** y **Herramientas → Borrar datos personales** de WordPress. El administrador utiliza el flujo nativo de solicitudes y su confirmación, buscando por el correo exacto del comprador. También cubre compradores invitados. La integración sigue los [contratos de privacidad de WordPress](https://developer.wordpress.org/plugins/privacy/adding-the-personal-data-eraser-to-your-plugin/).
+
+La exportación incluye solicitudes, notas, productos y opciones guardadas, importes, estados y fechas, historial de intentos de correo, dirección aceptada e identificador del pedido relacionado. Los enlaces privados, sus hashes, las claves de idempotencia y las huellas de límite de solicitudes quedan fuera del archivo exportado. WooCommerce exporta los datos propios del pedido mediante su integración independiente.
+
+El borrado elimina las solicitudes sin oferta y las ofertas rechazadas, canceladas o vencidas que nunca iniciaron una conversión ni tienen un pedido. La oferta y su solicitud relacionada se eliminan juntas; su enlace privado deja de funcionar. Se eliminan también las notas, los snapshots, los hashes y los metadatos que contenían esas filas. Los lotes se procesan sin saltar registros al reducirse la tabla y los reintentos convergen sobre los datos restantes.
+
+Se conservan las ofertas activas, las conversiones iniciadas, los registros vinculados a pedidos y los envíos de correo cuyo resultado sigue incierto. WordPress informa al administrador de esta retención. Cerrar una oferta activa permite repetir el borrado. Un envío incierto requiere revisar los registros del servicio y resolver su estado. Los pedidos se gestionan mediante las herramientas y la configuración de privacidad de WooCommerce; esta versión conserva el registro relacionado de QuoteFlow para mantener la recuperación y la validación del pago. El borrado de esos registros convertidos sigue pendiente de un flujo coordinado con la anonimización del pedido.
+
+Los bloqueos de respuesta, envío y aceptación protegen el borrado frente a operaciones simultáneas. Si un registro está en uso, WordPress recibe un error que permite reintentar; las eliminaciones ya completadas se conservan. No se agregan endpoints públicos para exportar o borrar datos.
+
+La tienda debe definir sus períodos de conservación y el tratamiento de las copias de seguridad, archivos exportados y registros del servicio de correo. Esta versión no incorpora borrado automático por antigüedad. Desactivar el plugin conserva sus tablas.
+
 ## Persistencia y reintentos
 
 La versión actualiza el esquema al cargar el plugin y conserva las solicitudes y ofertas anteriores. Los registros de un solo producto de versiones anteriores se leen usando sus columnas originales. Las solicitudes nuevas guardan un snapshot de todas sus líneas y cada oferta conserva también sus importes. Las sumas se calculan en unidades enteras de una millonésima de moneda y se validan contra la precisión configurada en WooCommerce. Las solicitudes se guardan localmente y se identifican por una clave de formulario única. Reenviar el mismo formulario con el mismo contenido conserva una sola solicitud.
@@ -79,6 +93,7 @@ python3 tests/mail_flow.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/decisions.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/delivery.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/variations.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/privacy.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -95,7 +110,9 @@ La prueba de variantes cubre formularios de producto y carrito, opciones abierta
 
 Esta versión corrige la función que renderiza los campos de dirección. La prueba comprueba ahora que el formulario de dirección se renderice completo antes de probar su envío.
 
-Quedan pendientes impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
+La prueba de privacidad utiliza los hooks registrados y el AJAX nativo de WordPress. Comprueba exportación por correo, exclusión de claves privadas, permisos y nonces, eliminación de más de un lote, reintentos, lectura de registros anteriores y conservación de pedidos con HPOS y almacenamiento clásico. También comprueba bloqueos frente a respuestas, correos y decisiones, y borrados concurrentes. Intercepta temporalmente el correo para evitar entregas externas.
+
+Quedan pendientes impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 
 ## Desarrollo y producción
 

@@ -27,7 +27,8 @@ final class Requests {
 				created_at datetime NOT NULL,
 				PRIMARY KEY  (id),
 				UNIQUE KEY submission_id (submission_id),
-				KEY rate_key (rate_key)
+				KEY rate_key (rate_key),
+				KEY email (email)
 			) ENGINE=InnoDB {$collate};"
 		);
 	}
@@ -121,6 +122,11 @@ final class Requests {
 			throw new RuntimeException( __( 'The offer is being prepared. Please try again.', 'quoteflow-free' ) );
 		}
 		try {
+			// A privacy erasure may have removed the request while we waited for its lock.
+			$request = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $request_id ) );
+			if ( ! $request ) {
+				throw new RuntimeException( __( 'Request not found.', 'quoteflow-free' ) );
+			}
 			$offers = $wpdb->prefix . 'qf_offers';
 			$saved  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$offers} WHERE request_id = %d", $request_id ) );
 			if ( $saved ) {
