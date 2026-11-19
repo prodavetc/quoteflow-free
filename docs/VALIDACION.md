@@ -13,14 +13,16 @@ Estado: candidata de staging. No equivale a aprobación para producción ni apro
 - Correo: capturador de WordPress y además protocolo SMTP real en loopback; rechazo del destinatario, reintento aceptado y contenido verificado. No se envió correo a destinatarios externos.
 - Actualización aislada desde el ZIP 0.12.0-dev sobre WordPress 7.0: columnas anteriores, enlaces privados, oferta de solicitud, pedido físico, direcciones y validación del pago conservados.
 - Idioma: carga del catálogo español desde WordPress y catálogo completo de las cadenas propias del plugin.
-- Compatibilidad adicional: creación, conversión y reintento en WordPress 7.0 y en PHP 8.4.27. La matriz de CI agrega ejecución completa sobre instalaciones limpias en PHP 8.3/8.4.
-- Plugin Check 2.2.0: cero errores en el análisis local; advertencias de SQL directo, ausencia de caché y otras advertencias revisables conservadas en el informe. Las supresiones específicas llevan su justificación en el código.
+- Compatibilidad adicional: creación, conversión y reintento en WordPress 7.0 y en PHP 8.4.27. La matriz de CI completó la ejecución de la batería sobre instalaciones limpias en PHP 8.3/8.4, con HPOS y clásico.
+- Plugin Check 2.2.0: cero errores y 138 advertencias en el análisis del ZIP final; advertencias de SQL directo, ausencia de caché y otras advertencias revisables conservadas en el informe. Las supresiones específicas llevan su justificación en el código.
 
 El bootstrap de la tienda de pruebas completa su configuración y elimina la redirección temporal de bienvenida de WooCommerce para que la velocidad del runner no cambie el destino del primer acceso de administración. Esto solo afecta a la tienda descartable.
 
 ## Artefactos y CI
 
-El builder fija nombres, permisos y fechas del ZIP; utiliza almacenamiento sin compresión para evitar diferencias entre versiones de zlib. Emite SHA256. La CI compara dos construcciones, verifica sintaxis y ejecuta integración y Plugin Check en instalaciones descartables. Consultar el resultado del commit en GitHub; un workflow configurado todavía no es evidencia de ejecución aprobada.
+El builder fija nombres, permisos y fechas del ZIP; utiliza almacenamiento sin compresión para evitar diferencias entre versiones de zlib. Emite SHA256. La CI compara dos construcciones, verifica sintaxis y ejecuta integración y Plugin Check en instalaciones descartables. La integración en PHP 8.3/8.4, sintaxis y construcción reproducible tienen resultado satisfactorio en [la ejecución 44602992367](https://github.com/prodavetc/quoteflow-free/actions/runs/44602992367), correspondiente al código de la candidata. Los cambios posteriores de documentación no modifican el ZIP.
+
+SHA256 del ZIP final: `07ffc9c1a53c214b5d9fb99b7f07b1f8c1c8074a905277fd87b41825a963f78d`.
 
 ## Pendientes externos
 

@@ -1,3 +1,5 @@
+> Archivo histórico de la etapa de desarrollo hasta 0.12.0-dev. Para la candidata actual, consultar el README y VALIDACION.md.
+
 # QuoteFlow Free
 
 Plugin WooCommerce en desarrollo para recibir solicitudes de cotización, preparar una oferta y convertir su aceptación en un pedido pagable.

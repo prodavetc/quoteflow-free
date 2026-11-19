@@ -17,6 +17,20 @@ Se ejecuta sobre el paquete instalable. Los mensajes de excepción son texto, es
 
 Persisten advertencias por acceso directo a tablas propias y ausencia de caché en operaciones de consistencia: se necesita leer el estado actual bajo bloqueo. No se sustituyen por caché de objetos los reclamos de creación, pago, correo o borrado. Revisar estas advertencias en la aprobación del directorio. Pasar Plugin Check no equivale a una auditoría independiente ni a aprobación de WordPress.org.
 
+### Advertencias conservadas
+
+| Grupo | Tratamiento revisado |
+| --- | --- |
+| SQL directo / sin caché | Tablas propias y reserva nativa: se necesita estado actual para no duplicar operaciones ni usar stock obsoleto. |
+| Identificadores SQL y fragmentos interpolados | Nombres derivados del prefijo de WordPress o de las tablas de WooCommerce; valores preparados y filtros de búsqueda validados. |
+| `REQUEST_METHOD` sin saneamiento genérico | Se compara con métodos literales; no se inserta en SQL ni se refleja como HTML. |
+| Nonce recomendado en GET | Son opciones de presentación y consultas de lectura; las mutaciones requieren POST con capacidad y nonce. |
+| Constante de versión | Está aislada en el espacio de nombres de QuoteFlow y tiene nombre específico del plugin. |
+| `load_plugin_textdomain` | Se ejecuta en `init` para que los catálogos incluidos funcionen también en un ZIP fuera del directorio. |
+| Consulta de metadatos | Recuperación excepcional de pedidos clásicos mediante API nativa, limitada a dos coincidencias para detectar ambigüedad. |
+
+El informe completo conserva los diagnósticos del analizador para la revisión del directorio; no se deshabilitan sus advertencias de forma global.
+
 ## Límites operativos
 
 - Los enlaces funcionan como credenciales de portador: excluirlos de analítica, caché externa y registros públicos.
