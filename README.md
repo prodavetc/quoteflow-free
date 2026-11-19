@@ -13,7 +13,7 @@ La bandeja permite recuperar el enlace de una oferta creada desde una solicitud.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.4.0-dev. Admite entre 1 y 20 productos simples virtuales diferentes por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.5.0-dev. Admite entre 1 y 20 productos simples virtuales diferentes por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -21,9 +21,17 @@ Las solicitudes admiten cantidades enteras de 1 a 100 por producto, correo y una
 
 Las páginas de producto y las páginas con el shortcode envían encabezados de exclusión de caché. Configurar también la exclusión en cualquier caché externa que ignore estos encabezados.
 
+## Rechazo y cancelación
+
+El enlace privado permite al comprador aceptar la oferta o pulsar **Decline offer** para rechazarla. El rechazo queda registrado y la página muestra su estado. Para solicitar otra oferta, contactar con la tienda.
+
+El comerciante puede abrir **View offer**, marcar la confirmación y pulsar **Cancel offer** antes de que la oferta se convierta en pedido. La bandeja muestra el rechazo o la cancelación, y se registra la fecha y el identificador del operador que cancela. Los rechazos mediante enlace privado se registran con actor invitado.
+
+Aceptar, rechazar y cancelar comparten un bloqueo por oferta. Si dos decisiones llegan al mismo tiempo, se aplica la primera transición válida. Repetir la misma decisión conserva el resultado. Los pedidos y las conversiones pendientes de revisión se gestionan en WooCommerce antes de cambiar su estado. Las ofertas rechazadas o canceladas quedan excluidas de la aceptación y del envío por correo.
+
 ## Correo de ofertas
 
-Después de crear una oferta, la pantalla muestra el destinatario y el botón **Send offer by email**. Para una oferta de la bandeja, abrir **View link and email**. El envío usa el servicio de correo ya configurado en WordPress y el formato de WooCommerce, con líneas, importes, moneda, vencimiento y enlace privado.
+Después de crear una oferta, la pantalla muestra el destinatario y el botón **Send offer by email**. Para una oferta de la bandeja, abrir **View offer**. El envío usa el servicio de correo ya configurado en WordPress y el formato de WooCommerce, con líneas, importes, moneda, vencimiento y enlace privado.
 
 Crear o recuperar una oferta conserva el estado de correo hasta que el operador solicite enviarla. La bandeja muestra el estado y la base registra los intentos y la fecha en que el servicio acepta el mensaje. La aceptación del servicio de correo permite verificar que se solicitó el envío. La recepción final depende del servidor del destinatario.
 
@@ -48,6 +56,7 @@ python3 tests/smoke.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/requests.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/multiline.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/mail_flow.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/decisions.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -55,6 +64,8 @@ Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan e
 La primera cubre concurrencia, reintentos, recuperación de conversiones, falta de stock y expiración. La segunda recorre formularios públicos y de administración hasta el pago local, e incluye solicitudes y respuestas repetidas, permisos, validación y límite de solicitudes. La tercera recorre un carrito de varios productos, precios por línea, conversión y pago con HPOS y almacenamiento clásico. Comprueba falta de stock en una línea, alteraciones de precios que mantienen el total, recuperación tras una interrupción y lectura de registros anteriores. También prueba el carrito de bloques y el clásico. La transferencia bancaria se confirma mediante una simulación local.
 
 La prueba de correo instala temporalmente un capturador local que intercepta todos los envíos y se retira al finalizar. Verifica contenido, permisos, formulario inválido, envíos simultáneos, fallos y recuperación de resultados inciertos. Esta prueba verifica la integración de WordPress con el transporte capturado.
+
+La prueba de decisiones cubre rechazo, cancelación, permisos, confirmación, bloqueo de correos y concurrencia frente a la aceptación en ambos almacenes de pedidos.
 
 Quedan pendientes productos físicos y variables, impuestos, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 

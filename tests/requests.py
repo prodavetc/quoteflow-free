@@ -16,7 +16,7 @@ admin_url = BASE + "/wp-admin/admin.php?page=quoteflow"
 # Repeated runs reset only throttle keys for this test's fictional contact.
 wp("eval", """global $wpdb; $wpdb->query("UPDATE {$wpdb->prefix}qf_requests
     SET rate_key = SHA2(CONCAT('previous-test-', id), 256) WHERE email = 'flow@example.test'");""")
-assert wp("option", "get", "qf_schema_version") == "0.4.0-dev"
+assert wp("option", "get", "qf_schema_version") == "0.5.0-dev"
 
 wp("option", "update", "woocommerce_coming_soon", "no")
 

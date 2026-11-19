@@ -36,6 +36,8 @@ final class Offers {
 				email varchar(254) NOT NULL,
 				expires_at datetime NOT NULL,
 				accepted_at datetime DEFAULT NULL,
+				closed_at datetime DEFAULT NULL,
+				closed_by bigint unsigned DEFAULT NULL,
 				email_state varchar(16) NOT NULL DEFAULT 'idle',
 				email_attempts int unsigned NOT NULL DEFAULT 0,
 				email_attempted_at datetime DEFAULT NULL,
@@ -180,6 +182,46 @@ final class Offers {
 		return $product;
 	}
 
+	public static function close( string $token, string $state, int $actor_id = 0 ): void {
+		global $wpdb;
+		if ( ! in_array( $state, array( 'rejected', 'canceled' ), true ) ) {
+			throw new RuntimeException( __( 'Invalid offer decision.', 'quoteflow-free' ) );
+		}
+		$offer = self::find( $token );
+		if ( ! $offer ) {
+			throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+		}
+		$lock = 'qf_' . md5( self::table() . ':' . $offer->id );
+		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
+			throw new RuntimeException( __( 'The offer is being processed. Try again.', 'quoteflow-free' ) );
+		}
+		try {
+			$offer = self::find( $token );
+			if ( ! $offer ) {
+				throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+			}
+			if ( $state === $offer->state ) {
+				return;
+			}
+			if ( 'converted' === $offer->state || 'creating' === $offer->state ) {
+				throw new RuntimeException( __( 'This offer already has an order or a conversion in progress. Manage the order in WooCommerce.', 'quoteflow-free' ) );
+			}
+			if ( 'offered' !== $offer->state || ( 'rejected' === $state && self::expired( $offer ) ) ) {
+				throw new RuntimeException( __( 'This offer is closed or expired.', 'quoteflow-free' ) );
+			}
+			$updated = $wpdb->update(
+				self::table(),
+				array( 'state' => $state, 'closed_at' => gmdate( 'Y-m-d H:i:s' ), 'closed_by' => $actor_id ),
+				array( 'id' => $offer->id, 'state' => 'offered' )
+			);
+			if ( 1 !== $updated ) {
+				throw new RuntimeException( __( 'The offer decision could not be saved. Please reload.', 'quoteflow-free' ) );
+			}
+		} finally {
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+		}
+	}
+
 	public static function accept( string $token ): WC_Order {
 		global $wpdb;
 		$offer = self::find( $token );
@@ -195,6 +237,9 @@ final class Offers {
 			$offer = self::find( $token );
 			if ( ! $offer || self::expired( $offer ) ) {
 				throw new RuntimeException( __( 'This offer is unavailable or expired.', 'quoteflow-free' ) );
+			}
+			if ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) ) {
+				throw new RuntimeException( __( 'This offer was declined or canceled. Contact the store for a new quote.', 'quoteflow-free' ) );
 			}
 			if ( 'converted' === $offer->state ) {
 				$order = wc_get_order( (int) $offer->order_id );

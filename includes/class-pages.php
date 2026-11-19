@@ -43,6 +43,18 @@ final class Pages {
 					check_admin_referer( 'qf_email_' . $offer->id . '_' . $attempt );
 					Offer_Email::send( self::$token, $attempt, '1' === self::input( INPUT_POST, 'confirm_retry' ) );
 					self::$notice = __( 'The mail service accepted the offer email. Receipt depends on the recipient mail server.', 'quoteflow-free' );
+				} elseif ( 'cancel' === self::input( INPUT_POST, 'qf_action' ) ) {
+					self::$token = self::input( INPUT_POST, 'offer_token' );
+					$offer = Offers::find( self::$token );
+					if ( ! $offer ) {
+						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+					}
+					check_admin_referer( 'qf_cancel_' . $offer->id );
+					if ( '1' !== self::input( INPUT_POST, 'confirm_cancel' ) ) {
+						throw new RuntimeException( __( 'Confirm that you want to cancel this offer.', 'quoteflow-free' ) );
+					}
+					Offers::close( self::$token, 'canceled', get_current_user_id() );
+					self::$notice = __( 'The offer was canceled.', 'quoteflow-free' );
 				} else {
 					check_admin_referer( 'qf_create_offer' );
 					$request_id = (int) self::input( INPUT_POST, 'request_id' );
@@ -85,7 +97,9 @@ final class Pages {
 			<?php if ( $link ) : ?>
 				<p><label for="qf-offer-link"><?php esc_html_e( 'Private link to share with the buyer', 'quoteflow-free' ); ?></label></p>
 				<input id="qf-offer-link" type="url" class="large-text" readonly value="<?php echo esc_attr( $link ); ?>">
+				<p><?php echo esc_html( self::offer_status( Offers::find( $token ) ) ); ?></p>
 				<?php self::email_form( $token ); ?>
+				<?php self::cancel_form( $token ); ?>
 			<?php endif; ?>
 			<?php self::inbox(); ?>
 			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
@@ -98,6 +112,23 @@ final class Pages {
 				<?php submit_button( __( 'Create offer', 'quoteflow-free' ) ); ?>
 			</form>
 		</div>
+		<?php
+	}
+
+	private static function cancel_form( string $token ): void {
+		$offer = Offers::find( $token );
+		if ( ! $offer || 'offered' !== $offer->state ) {
+			return;
+		}
+		?>
+		<form method="post">
+			<?php wp_nonce_field( 'qf_cancel_' . $offer->id ); ?>
+			<input type="hidden" name="qf_action" value="cancel">
+			<input type="hidden" name="offer_token" value="<?php echo esc_attr( $token ); ?>">
+			<p><label><input type="checkbox" name="confirm_cancel" value="1" required>
+				<?php esc_html_e( 'Cancel this offer and prevent its acceptance.', 'quoteflow-free' ); ?></label></p>
+			<button class="button" type="submit"><?php esc_html_e( 'Cancel offer', 'quoteflow-free' ); ?></button>
+		</form>
 		<?php
 	}
 
@@ -184,7 +215,7 @@ final class Pages {
 										</label></p>
 									<?php endforeach; ?>
 								<?php endif; ?>
-								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'View link and email', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
+								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'View offer', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
 							</form>
 						</td>
 					</tr>
@@ -204,15 +235,18 @@ final class Pages {
 	}
 
 	private static function offer_status( object $request ): string {
-		if ( 'offered' === $request->offer_state && Offers::expired( $request ) ) {
+		$state = $request->offer_state ?? $request->state;
+		if ( 'offered' === $state && Offers::expired( $request ) ) {
 			return __( 'Expired', 'quoteflow-free' );
 		}
 		$labels = array(
 			'offered'   => __( 'Awaiting acceptance', 'quoteflow-free' ),
 			'creating'  => __( 'Order awaiting review', 'quoteflow-free' ),
 			'converted' => __( 'Order created', 'quoteflow-free' ),
+			'rejected'  => __( 'Declined by the buyer', 'quoteflow-free' ),
+			'canceled'  => __( 'Canceled by the store', 'quoteflow-free' ),
 		);
-		return $labels[ $request->offer_state ] ?? __( 'Awaiting review', 'quoteflow-free' );
+		return $labels[ $state ] ?? __( 'Awaiting review', 'quoteflow-free' );
 	}
 
 	public static function offer(): void {
@@ -233,20 +267,32 @@ final class Pages {
 			if ( ! wp_verify_nonce( self::input( INPUT_POST, 'qf_nonce' ), 'qf_accept_' . $token ) ) {
 				wp_die( esc_html__( 'Reload the offer to try again.', 'quoteflow-free' ), '', array( 'response' => 403 ) );
 			}
+			$decision = filter_input( INPUT_POST, 'decision', FILTER_UNSAFE_RAW );
+			if ( null === $decision ) {
+				$decision = ''; // Older forms submitted only the acceptance nonce.
+			}
+			if ( ! is_string( $decision ) || ! in_array( $decision, array( '', 'accept', 'decline' ), true ) ) {
+				wp_die( esc_html__( 'Invalid offer decision.', 'quoteflow-free' ), '', array( 'response' => 422 ) );
+			}
 			try {
-				$order = Offers::accept( $token );
+				if ( 'decline' === $decision ) {
+					Offers::close( $token, 'rejected' );
+					$offer = Offers::find( $token );
+				} else {
+					$order = Offers::accept( $token );
+					if ( ! $order->needs_payment() ) {
+						wp_die( esc_html__( 'This order no longer needs payment.', 'quoteflow-free' ), '', array( 'response' => 200 ) );
+					}
+					wp_safe_redirect( $order->get_checkout_payment_url(), 303 );
+					exit;
+				}
 			} catch ( RuntimeException $e ) {
 				wp_die( esc_html( $e->getMessage() ), '', array( 'response' => 409 ) );
 			} catch ( Throwable $e ) {
 				wp_die( esc_html__( 'The order needs review. Contact the store before trying to pay.', 'quoteflow-free' ), '', array( 'response' => 500 ) );
 			}
-			if ( ! $order->needs_payment() ) {
-				wp_die( esc_html__( 'This order no longer needs payment.', 'quoteflow-free' ), '', array( 'response' => 200 ) );
-			}
-			wp_safe_redirect( $order->get_checkout_payment_url(), 303 );
-			exit;
 		}
-		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		if ( ! in_array( $_SERVER['REQUEST_METHOD'] ?? '', array( 'GET', 'POST' ), true ) ) {
 			header( 'Allow: GET, POST' );
 			wp_die( esc_html__( 'Method not allowed.', 'quoteflow-free' ), '', array( 'response' => 405 ) );
 		}
@@ -277,10 +323,19 @@ final class Pages {
 				</tbody>
 			</table>
 			<p><?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
-			<form method="post">
-				<?php wp_nonce_field( 'qf_accept_' . $token, 'qf_nonce', false ); ?>
-				<button type="submit"><?php esc_html_e( 'Accept and continue to payment', 'quoteflow-free' ); ?></button>
-			</form>
+			<?php if ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) ) : ?>
+				<p role="status"><?php echo 'rejected' === $offer->state
+					? esc_html__( 'You declined this offer. Contact the store if you need a new quote.', 'quoteflow-free' )
+					: esc_html__( 'The store canceled this offer. Contact the store if you need a new quote.', 'quoteflow-free' ); ?></p>
+			<?php else : ?>
+				<form method="post">
+					<?php wp_nonce_field( 'qf_accept_' . $token, 'qf_nonce', false ); ?>
+					<button type="submit" name="decision" value="accept"><?php esc_html_e( 'Accept and continue to payment', 'quoteflow-free' ); ?></button>
+					<?php if ( 'offered' === $offer->state ) : ?>
+						<button type="submit" name="decision" value="decline"><?php esc_html_e( 'Decline offer', 'quoteflow-free' ); ?></button>
+					<?php endif; ?>
+				</form>
+			<?php endif; ?>
 		</main>
 		</body>
 		</html>
