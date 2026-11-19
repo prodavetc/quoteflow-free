@@ -15,7 +15,7 @@ admin_url = BASE + "/wp-admin/admin.php?page=quoteflow"
 
 # Repeated runs reset only throttle keys for this test's fictional contact.
 reset_request_throttles()
-assert wp("option", "get", "qf_schema_version") == "0.9.0-dev"
+assert wp("option", "get", "qf_schema_version") == "1.0.0-rc.1"
 
 wp("option", "update", "woocommerce_coming_soon", "no")
 

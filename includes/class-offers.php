@@ -36,6 +36,9 @@ final class Offers {
 				shipping_country char(2) NOT NULL DEFAULT '',
 				accepted_address_json longtext DEFAULT NULL,
 				accepted_billing_json longtext DEFAULT NULL,
+				taxes_enabled tinyint NOT NULL DEFAULT 0,
+				tax_config_hash char(64) DEFAULT NULL,
+				accepted_tax_json longtext DEFAULT NULL,
 				currency char(3) NOT NULL,
 				email varchar(254) NOT NULL,
 				expires_at datetime NOT NULL,
@@ -82,19 +85,19 @@ final class Offers {
 	): string {
 		global $wpdb;
 		if ( ! wp_is_uuid( $submission ) ) {
-			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$line_total = self::decimal( self::amount( $total ) );
 		$shipping = self::decimal( self::amount( $shipping_total, true ) );
 		$table = self::table();
 		$lock = 'qf_manual_' . md5( $table . ':' . $submission );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'This offer is being created. Wait and retry the same form.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'This offer is being created. Wait and retry the same form.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			$saved = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE conversion_id = %s", $submission ) );
 			if ( $wpdb->last_error ) {
-				throw new RuntimeException( __( 'The offer could not be checked. Retry the same form.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The offer could not be checked. Retry the same form.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( $saved ) {
 				$items = self::items( $saved );
@@ -103,7 +106,7 @@ final class Offers {
 					|| $items[0]['total'] !== $line_total || $saved->email !== $email
 					|| $saved->shipping_total !== $shipping
 					|| $saved->shipping_country !== ( Delivery::required( $saved ) ? $shipping_country : '' ) ) {
-					throw new RuntimeException( __( 'This form already created a different offer. Reload the page to create a new one.', 'quoteflow-free' ) );
+					throw new RuntimeException( __( 'This form already created a different offer. Reload the page to create a new one.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 				}
 				return self::recover_manual_token( (int) $saved->id );
 			}
@@ -116,7 +119,7 @@ final class Offers {
 
 	public static function snapshot( array $items ): array {
 		if ( ! $items || count( $items ) > 20 || ! array_is_list( $items ) ) {
-			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$snapshot = array();
 		$seen     = array();
@@ -124,13 +127,13 @@ final class Offers {
 			if ( ! is_array( $item ) || ! isset( $item['product_id'], $item['quantity'] )
 				|| ! is_int( $item['product_id'] ) || ! is_int( $item['quantity'] )
 				|| ! is_array( $item['attributes'] ?? array() ) ) {
-				throw new RuntimeException( __( 'Each product must appear once with a whole quantity.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Each product must appear once with a whole quantity.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$selection = Variations::select( $item['product_id'], $item['attributes'] ?? array() );
 			$product   = self::product( $selection['product_id'], $item['quantity'] );
 			$identity  = $product->get_id() . ':' . wp_json_encode( $selection['attributes'] );
 			if ( isset( $seen[ $identity ] ) ) {
-				throw new RuntimeException( __( 'Each product and option combination must appear once.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Each product and option combination must appear once.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$label = $product->get_name();
 			if ( $selection['parent_id'] ) {
@@ -143,6 +146,8 @@ final class Offers {
 				'product_label'  => $label,
 				'quantity'       => $item['quantity'],
 				'needs_shipping' => $product->needs_shipping(),
+				'tax_class' => $product->get_tax_class(),
+				'tax_status' => $product->get_tax_status(),
 			);
 			$seen[ $identity ] = true;
 		}
@@ -177,8 +182,8 @@ final class Offers {
 			|| strlen( $parts[1] ?? '' ) > $decimals || ( ! $allow_zero && '' === trim( $value, '0.' ) ) ) {
 			throw new RuntimeException(
 				$allow_zero
-					? __( 'Enter a shipping total of zero or more, using the store currency precision.', 'quoteflow-free' )
-					: __( 'Enter a valid positive total for each product.', 'quoteflow-free' )
+					? __( 'Enter a shipping total of zero or more, using the store currency precision.', 'quoteflow-free' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
+					: __( 'Enter a valid positive total for each product.', 'quoteflow-free' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			);
 		}
 		return (int) ( $parts[0] . str_pad( $parts[1] ?? '', 6, '0' ) );
@@ -200,37 +205,37 @@ final class Offers {
 		global $wpdb;
 		$snapshot = self::snapshot( $items );
 		if ( ! is_email( $email ) || strlen( $email ) > 254 ) {
-			throw new RuntimeException( __( 'Enter a valid billing email.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Enter a valid billing email.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$sum = 0;
 		foreach ( $snapshot as $position => &$item ) {
 			if ( ! isset( $items[ $position ]['total'] ) || ! is_string( $items[ $position ]['total'] ) ) {
-				throw new RuntimeException( __( 'Enter a total for each product.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Enter a total for each product.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$amount        = self::amount( $items[ $position ]['total'] );
 			$sum          += $amount;
 			$item['total'] = self::decimal( $amount );
 			if ( $sum > 999999999999999999 ) {
-				throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
 		unset( $item );
 		$delivery = in_array( true, array_column( $snapshot, 'needs_shipping' ), true );
 		$shipping = self::amount( $shipping_total, true );
 		if ( ! $delivery && $shipping > 0 ) {
-			throw new RuntimeException( __( 'Shipping charges require a physical product.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Shipping charges require a physical product.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		if ( $delivery && ! isset( Delivery::countries()[ $shipping_country ] ) ) {
-			throw new RuntimeException( __( 'Choose a shipping country supported by the store.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Choose a shipping country supported by the store.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$sum += $shipping;
 		if ( $sum > 999999999999999999 ) {
-			throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$first  = $snapshot[0];
 		$conversion = $conversion ?? wp_generate_uuid4();
 		if ( ! wp_is_uuid( $conversion ) ) {
-			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$token = $token ?? ( $request_id > 0 ? bin2hex( random_bytes( 32 ) ) : self::manual_token( $conversion ) );
 		$result = $wpdb->insert(
@@ -248,12 +253,14 @@ final class Offers {
 				'shipping_total' => self::decimal( $shipping ),
 				'shipping_country' => $delivery ? $shipping_country : '',
 				'currency'      => get_woocommerce_currency(),
+				'taxes_enabled' => wc_tax_enabled() ? 1 : 0,
+				'tax_config_hash' => wc_tax_enabled() ? Taxes::fingerprint() : null,
 				'email'         => $email,
 				'expires_at'    => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
 			)
 		);
 		if ( 1 !== $result ) {
-			throw new RuntimeException( __( 'The offer could not be saved.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The offer could not be saved.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return $token;
 	}
@@ -276,11 +283,11 @@ final class Offers {
 		$table = self::table();
 		$offer = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND request_id IS NULL", $offer_id ) );
 		if ( ! $offer ) {
-			throw new RuntimeException( __( 'Manual offer not found.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Manual offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$token = self::manual_token( $offer->conversion_id );
 		if ( ! hash_equals( $offer->token_hash, hash( 'sha256', $token ) ) ) {
-			throw new RuntimeException( __( 'This offer needs its original private link. It may predate link recovery or the store security keys may have changed.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'This offer needs its original private link. It may predate link recovery or the store security keys may have changed.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return $token;
 	}
@@ -303,17 +310,17 @@ final class Offers {
 
 	public static function product( int $product_id, int $quantity ): \WC_Product {
 		$product = wc_get_product( $product_id );
-		if ( $quantity < 1 || $quantity > 100 || wc_tax_enabled() || ! $product
+		if ( $quantity < 1 || $quantity > 100 || ! $product
 			|| ! $product->is_type( array( 'simple', 'variation' ) )
 			|| 'publish' !== $product->get_status() || ! $product->is_purchasable()
 			|| ( $product->is_sold_individually() && $quantity > 1 )
 			|| ! $product->is_in_stock() || ! $product->has_enough_stock( $quantity ) ) {
-			throw new RuntimeException( __( 'Use an available simple product or variation in a store with taxes disabled.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Use an available simple product or variation supported by the store.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		if ( $product->is_type( 'variation' ) ) {
 			$parent = wc_get_product( $product->get_parent_id() );
 			if ( ! $parent || 'publish' !== $parent->get_status() || ! $product->variation_is_visible() ) {
-				throw new RuntimeException( __( 'Choose an available product variation.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Choose an available product variation.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
 		return $product;
@@ -322,29 +329,29 @@ final class Offers {
 	public static function close( string $token, string $state, int $actor_id = 0 ): void {
 		global $wpdb;
 		if ( ! in_array( $state, array( 'rejected', 'canceled' ), true ) ) {
-			throw new RuntimeException( __( 'Invalid offer decision.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Invalid offer decision.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$offer = self::find( $token );
 		if ( ! $offer ) {
-			throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$lock = 'qf_' . md5( self::table() . ':' . $offer->id );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'The offer is being processed. Try again.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The offer is being processed. Try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			$offer = self::find( $token );
 			if ( ! $offer ) {
-				throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( $state === $offer->state ) {
 				return;
 			}
 			if ( 'converted' === $offer->state || 'creating' === $offer->state ) {
-				throw new RuntimeException( __( 'This offer already has an order or a conversion in progress. Manage the order in WooCommerce.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'This offer already has an order or a conversion in progress. Manage the order in WooCommerce.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( 'offered' !== $offer->state || ( 'rejected' === $state && self::expired( $offer ) ) ) {
-				throw new RuntimeException( __( 'This offer is closed or expired.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'This offer is closed or expired.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$updated = $wpdb->update(
 				self::table(),
@@ -352,7 +359,7 @@ final class Offers {
 				array( 'id' => $offer->id, 'state' => 'offered' )
 			);
 			if ( 1 !== $updated ) {
-				throw new RuntimeException( __( 'The offer decision could not be saved. Please reload.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The offer decision could not be saved. Please reload.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
@@ -363,20 +370,20 @@ final class Offers {
 		global $wpdb;
 		$offer = self::find( $token );
 		if ( ! $offer || self::expired( $offer ) ) {
-			throw new RuntimeException( __( 'This offer is unavailable or expired.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'This offer is unavailable or expired.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 
 		$lock = 'qf_' . md5( self::table() . ':' . $offer->id );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'The offer is being processed. Try again.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The offer is being processed. Try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			$offer = self::find( $token );
 			if ( ! $offer || self::expired( $offer ) ) {
-				throw new RuntimeException( __( 'This offer is unavailable or expired.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'This offer is unavailable or expired.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) ) {
-				throw new RuntimeException( __( 'This offer was declined or canceled. Contact the store for a new quote.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'This offer was declined or canceled. Contact the store for a new quote.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( 'converted' === $offer->state ) {
 				$order = wc_get_order( (int) $offer->order_id );
@@ -391,10 +398,11 @@ final class Offers {
 				self::validate_items( $offer );
 				$address = Delivery::validate( $offer, $address );
 				$offer->accepted_address_json = wp_json_encode( $address );
-				$offer->accepted_billing_json = Delivery::required( $offer )
+				$offer->accepted_billing_json = Delivery::billing_required( $offer )
 					? wp_json_encode( Delivery::validate_billing( $offer, $billing ?? $address ) ) : null;
+				$offer->accepted_tax_json = wp_json_encode( Taxes::plan( $offer ) );
 				if ( get_woocommerce_currency() !== $offer->currency ) {
-					throw new RuntimeException( __( 'The store currency changed. Ask for a new offer.', 'quoteflow-free' ) );
+					throw new RuntimeException( __( 'The store currency changed. Ask for a new offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 				}
 				$claimed = $wpdb->update(
 					self::table(),
@@ -403,6 +411,7 @@ final class Offers {
 						'accepted_at' => gmdate( 'Y-m-d H:i:s' ),
 						'accepted_address_json' => $offer->accepted_address_json,
 						'accepted_billing_json' => $offer->accepted_billing_json,
+						'accepted_tax_json' => $offer->accepted_tax_json,
 					),
 					array( 'id' => $offer->id, 'state' => 'offered' )
 				);
@@ -438,35 +447,42 @@ final class Offers {
 		$order->set_customer_id( 0 );
 		$order->set_billing_email( $offer->email );
 		$order->set_currency( $offer->currency );
-		$order->set_prices_include_tax( false );
+		$order->set_prices_include_tax( Taxes::enabled( $offer ) );
+		$plan = Taxes::accepted( $offer );
+		if ( Delivery::billing_required( $offer ) ) {
+			$order->set_address( Delivery::accepted_billing( $offer ), 'billing' );
+		}
 		if ( Delivery::required( $offer ) ) {
 			$address = Delivery::accepted( $offer );
 			$order->set_address( $address, 'shipping' );
-			$order->set_address( Delivery::accepted_billing( $offer ), 'billing' );
 			$shipping = new \WC_Order_Item_Shipping();
 			$shipping->set_method_id( 'quoteflow' );
 			$shipping->set_method_title( __( 'Quoted shipping', 'quoteflow-free' ) );
-			$shipping->set_total( $offer->shipping_total );
+			$shipping->set_total( $plan['shipping']['net'] );
+			$shipping->set_taxes( array( 'total' => $plan['shipping']['taxes'] ) );
 			$order->add_item( $shipping );
 		}
-		foreach ( self::items( $offer ) as $item ) {
+		foreach ( self::items( $offer ) as $position => $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
 			$order->add_product(
 				$product,
 				(int) $item['quantity'],
 				array(
-					'name' => $item['product_label'], 'subtotal' => $item['total'], 'total' => $item['total'],
+					'name' => $item['product_label'], 'subtotal' => $plan['items'][ $position ]['net'], 'total' => $plan['items'][ $position ]['net'],
+					'taxes' => array( 'subtotal' => $plan['items'][ $position ]['taxes'], 'total' => $plan['items'][ $position ]['taxes'] ),
 					'variation' => $item['attributes'] ?? array(),
 				)
 			);
 		}
 		$order->update_meta_data( '_qf_conversion_id', $offer->conversion_id );
+		$order->update_taxes();
 		$order->calculate_totals( false );
 		self::verify_order( $offer, $order );
 		return $order;
 	}
 
 	private static function recover( object $offer ): WC_Order {
+		Taxes::validate( $offer );
 		$meta  = array( 'key' => '_qf_conversion_id', 'value' => $offer->conversion_id );
 		$query = array( 'type' => 'shop_order', 'limit' => 2, 'qf_conversion_id' => $offer->conversion_id );
 		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
@@ -505,12 +521,12 @@ final class Offers {
 			throw self::reconciliation_required();
 		}
 		Delivery::verify_order( $offer, $order );
+		Taxes::verify( $offer, $order );
 		foreach ( $expected as $position => $line ) {
 			$variation_id = empty( $line['parent_id'] ) ? 0 : (int) $line['product_id'];
 			if ( (int) ( ( $line['parent_id'] ?? 0 ) ?: $line['product_id'] ) !== $items[ $position ]->get_product_id()
 				|| $variation_id !== $items[ $position ]->get_variation_id()
-				|| (int) $line['quantity'] !== $items[ $position ]->get_quantity()
-				|| wc_format_decimal( $line['total'], 6 ) !== wc_format_decimal( $items[ $position ]->get_total(), 6 ) ) {
+				|| (int) $line['quantity'] !== $items[ $position ]->get_quantity() ) {
 				throw self::reconciliation_required();
 			}
 			foreach ( $line['attributes'] ?? array() as $name => $value ) {
@@ -537,20 +553,21 @@ final class Offers {
 			self::verify_order( $offer, $order );
 			self::validate_items( $offer );
 		} catch ( RuntimeException $e ) {
-			wc_add_notice( $e->getMessage(), 'error' );
+			wc_add_notice( esc_html( $e->getMessage() ), 'error' );
 		}
 	}
 
 	private static function validate_items( object $offer ): void {
+		Taxes::validate( $offer );
 		foreach ( self::items( $offer ) as $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
 			$selection = Variations::select( $product->get_id(), $item['attributes'] ?? array() );
 			if ( $selection['parent_id'] !== (int) ( $item['parent_id'] ?? 0 )
 				|| $selection['attributes'] !== ( $item['attributes'] ?? array() ) ) {
-				throw new RuntimeException( __( 'Product options changed. Ask the store for a new offer.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Product options changed. Ask the store for a new offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( $product->needs_shipping() !== (bool) ( $item['needs_shipping'] ?? false ) ) {
-				throw new RuntimeException( __( 'Product delivery requirements changed. Ask the store for a new offer.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Product delivery requirements changed. Ask the store for a new offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
 		self::validate_stock( self::items( $offer ) );
@@ -566,12 +583,12 @@ final class Offers {
 		foreach ( $quantities as $stock_id => $quantity ) {
 			$stock = wc_get_product( $stock_id );
 			if ( ! $stock || ! $stock->has_enough_stock( $quantity ) ) {
-				throw new RuntimeException( __( 'The combined quantity exceeds the available product stock.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The combined quantity exceeds the available product stock.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
 	}
 
 	private static function reconciliation_required(): RuntimeException {
-		return new RuntimeException( __( 'The order needs review. Contact the store before trying to pay.', 'quoteflow-free' ) );
+		return new RuntimeException( __( 'The order needs review. Contact the store before trying to pay.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 	}
 }

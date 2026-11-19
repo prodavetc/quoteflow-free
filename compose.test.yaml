@@ -1,0 +1,34 @@
+name: quoteflow-m0
+services:
+  db:
+    image: mariadb:10.11@sha256:7d829180b5b2a9ba74f6242876ab401a0d7dd338a807e522ef92bc9698760f20
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: local-quoteflow-db
+      MARIADB_ROOT_PASSWORD: local-quoteflow-root
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db:/var/lib/mysql
+  wp:
+    image: ${QF_WP_IMAGE:-wordpress:7.1.4-php8.3-apache@sha256:8b64037bb2a3bdc41bebccb165f20ad5e4c786b684ae4a2bd5981f98aa1eb107}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18972:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: local-quoteflow-db
+    volumes:
+      - wp:/var/www/html
+      - ./work/downloads:/downloads:ro
+volumes:
+  db:
+  wp:

@@ -40,7 +40,7 @@ final class Requests {
 	public static function submit_items( string $submission, array $items, string $email, string $note, string $address ): void {
 		global $wpdb;
 		if ( ! wp_is_uuid( $submission ) || ! is_email( $email ) || strlen( $email ) > 254 || mb_strlen( $note, 'UTF-8' ) > 2000 ) {
-			throw new RuntimeException( __( 'Enter a valid email and a note of up to 2000 characters.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Enter a valid email and a note of up to 2000 characters.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$snapshot = Offers::snapshot( $items );
 		$identity = array();
@@ -57,19 +57,19 @@ final class Requests {
 		$rate    = hash_hmac( 'sha256', $address . '|' . (int) floor( time() / 600 ), wp_salt( 'nonce' ) );
 		$lock    = 'qf_request_' . substr( $rate, 0, 40 );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'The request is being processed. Please try again.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The request is being processed. Please try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			$table = $wpdb->prefix . 'qf_requests';
 			$saved = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE submission_id = %s", $submission ) );
 			if ( $saved ) {
 				if ( ! hash_equals( $saved->payload_hash, $payload ) ) {
-					throw new RuntimeException( __( 'This form was already submitted. Reload it to send a different request.', 'quoteflow-free' ) );
+					throw new RuntimeException( __( 'This form was already submitted. Reload it to send a different request.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 				}
 				return;
 			}
 			if ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE rate_key = %s", $rate ) ) >= 5 ) {
-				throw new RuntimeException( __( 'Too many requests. Please wait ten minutes and try again.', 'quoteflow-free' ), 429 );
+				throw new RuntimeException( __( 'Too many requests. Please wait ten minutes and try again.', 'quoteflow-free' ), 429 ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$inserted = $wpdb->insert(
 				$table,
@@ -87,7 +87,7 @@ final class Requests {
 				)
 			);
 			if ( 1 !== $inserted ) {
-				throw new RuntimeException( __( 'The request could not be saved. Please try again.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The request could not be saved. Please try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
@@ -141,7 +141,7 @@ final class Requests {
 		$requests = $wpdb->prefix . 'qf_requests';
 		$offers   = $wpdb->prefix . 'qf_offers';
 		$where    = self::inbox_where( $search, $state );
-		return $wpdb->get_results(
+		return $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names use the trusted site prefix; values in the WHERE fragment are prepared.
 			$wpdb->prepare(
 				"SELECT r.*, o.id AS offer_id, o.state AS offer_state, o.total, o.currency, o.expires_at, o.order_id, o.email_state
 				FROM {$requests} r LEFT JOIN {$offers} o ON o.request_id = r.id {$where}
@@ -164,32 +164,32 @@ final class Requests {
 		$table   = $wpdb->prefix . 'qf_requests';
 		$request = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $request_id ) );
 		if ( ! $request ) {
-			throw new RuntimeException( __( 'Request not found.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Request not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		// Derive the private link so an authorized operator can recover it after a lost response.
 		$token = hash_hmac( 'sha256', 'quoteflow-request-offer|' . $request->submission_id, wp_salt( 'auth' ) );
 		$lock  = 'qf_reply_' . md5( $table . ':' . $request_id );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'The offer is being prepared. Please try again.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The offer is being prepared. Please try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			// A privacy erasure may have removed the request while we waited for its lock.
 			$request = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $request_id ) );
 			if ( ! $request ) {
-				throw new RuntimeException( __( 'Request not found.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Request not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$offers = $wpdb->prefix . 'qf_offers';
 			$saved  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$offers} WHERE request_id = %d", $request_id ) );
 			if ( $saved ) {
 				if ( ! hash_equals( $saved->token_hash, hash( 'sha256', $token ) ) ) {
-					throw new RuntimeException( __( 'The store security keys changed. The original private link is required.', 'quoteflow-free' ) );
+					throw new RuntimeException( __( 'The store security keys changed. The original private link is required.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 				}
 				return $token;
 			}
 			$items  = Offers::items( $request );
 			$totals = is_array( $total ) ? $total : array( $total );
 			if ( count( $items ) !== count( $totals ) || ! array_is_list( $totals ) ) {
-				throw new RuntimeException( __( 'Enter a total for each requested product.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Enter a total for each requested product.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			foreach ( $items as $position => &$item ) {
 				$item['total'] = $totals[ $position ];

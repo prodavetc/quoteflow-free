@@ -12,26 +12,26 @@ final class Offer_Email {
 		global $wpdb;
 		$offer = Offers::find( $token );
 		if ( ! $offer ) {
-			throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$table = $wpdb->prefix . 'qf_offers';
 		$lock  = 'qf_email_' . md5( $table . ':' . $offer->id );
 		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
-			throw new RuntimeException( __( 'An email is being processed. Please wait and reload.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'An email is being processed. Please wait and reload.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		try {
 			$offer = Offers::find( $token );
 			if ( ! $offer || 'offered' !== $offer->state || Offers::expired( $offer ) ) {
-				throw new RuntimeException( __( 'Only an active offer awaiting acceptance can be emailed.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Only an active offer awaiting acceptance can be emailed.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( 'accepted' === $offer->email_state ) {
 				return;
 			}
 			if ( (int) $offer->email_attempts !== $expected_attempt ) {
-				throw new RuntimeException( __( 'This email attempt was already processed. Reload before trying again.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'This email attempt was already processed. Reload before trying again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( 'sending' === $offer->email_state && ! $confirm_retry ) {
-				throw new RuntimeException( __( 'The previous email result is unknown. Check the mail logs before retrying.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The previous email result is unknown. Check the mail logs before retrying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$subject = sanitize_text_field(
 				sprintf(
@@ -49,12 +49,12 @@ final class Offer_Email {
 				array( 'id' => $offer->id, 'email_attempts' => $expected_attempt )
 			);
 			if ( 1 !== $claimed ) {
-				throw new RuntimeException( __( 'The email attempt could not be saved. Please reload.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The email attempt could not be saved. Please reload.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			try {
 				$accepted = $mailer->send( $offer->email, $subject, $message );
 			} catch ( Throwable $e ) {
-				throw new RuntimeException( __( 'The email result is unknown. Check the mail logs before retrying.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The email result is unknown. Check the mail logs before retrying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$updated = $wpdb->update(
 				$table,
@@ -65,10 +65,10 @@ final class Offer_Email {
 				array( 'id' => $offer->id, 'email_state' => 'sending', 'email_attempts' => $attempt )
 			);
 			if ( 1 !== $updated ) {
-				throw new RuntimeException( __( 'The email result could not be saved. Check the mail logs before retrying.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The email result could not be saved. Check the mail logs before retrying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			if ( ! $accepted ) {
-				throw new RuntimeException( __( 'The mail service did not accept the email. Check the store mail configuration and try again.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The mail service did not accept the email. Check the store mail configuration and try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
@@ -83,6 +83,7 @@ final class Offer_Email {
 		);
 		ob_start();
 		?>
+		<p><?php esc_html_e( 'The negotiated total includes applicable taxes. The tax breakdown is calculated from your address when you accept.', 'quoteflow-free' ); ?></p>
 		<p><?php esc_html_e( 'Review your quote below. Open the private link to accept it and continue to payment.', 'quoteflow-free' ); ?></p>
 		<table cellspacing="0" cellpadding="6" border="1" width="100%">
 			<thead><tr>

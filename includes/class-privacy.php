@@ -12,6 +12,17 @@ final class Privacy {
 	private const BATCH = 20;
 
 	public static function register(): void {
+		add_filter( 'woocommerce_privacy_erase_order_personal_data', static function ( $erase, $order ) {
+			return $order->get_meta( '_qf_conversion_id' ) && ! self::terminal( $order ) ? false : $erase;
+		}, 10, 2 );
+		add_action( 'woocommerce_privacy_remove_order_personal_data', static function ( $order ) {
+			global $wpdb;
+			if ( ! self::terminal( $order ) || ! $order->get_meta( '_qf_conversion_id' ) ) { return; }
+			$table = $wpdb->prefix . 'qf_offers';
+			$id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE order_id = %d AND conversion_id = %s", $order->get_id(), $order->get_meta( '_qf_conversion_id' ) ) );
+			if ( $id ) { self::cleanup_order( $id ); }
+		} );
+		add_action( 'qf_privacy_cleanup', array( self::class, 'cleanup_order' ) );
 		add_filter( 'wp_privacy_personal_data_exporters', static function ( array $exporters ): array {
 			$exporters['quoteflow'] = array(
 				'exporter_friendly_name' => __( 'QuoteFlow requests and offers', 'quoteflow-free' ),
@@ -25,7 +36,39 @@ final class Privacy {
 				'callback' => array( self::class, 'erase' ),
 			);
 			return $erasers;
-		} );
+		}, 100 );
+	}
+
+	private static function terminal( $order ): bool {
+		return $order instanceof \WC_Order && $order->has_status( array( 'completed', 'cancelled', 'refunded' ) ) && ! $order->needs_payment();
+	}
+
+	public static function cleanup_order( int $offer_id ): void {
+		global $wpdb;
+		$offer = null;
+		try {
+			$rows = self::rows( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}qf_offers WHERE id = %d", $offer_id ) );
+			$offer = $rows[0] ?? null;
+			if ( ! $offer ) { wp_clear_scheduled_hook( 'qf_privacy_cleanup', array( $offer_id ) ); return; }
+			$order = wc_get_order( (int) $offer->order_id );
+			if ( ! self::terminal( $order ) || 'yes' !== $order->get_meta( '_anonymized' ) || $offer->conversion_id !== $order->get_meta( '_qf_conversion_id' ) ) { return; }
+			if ( ! self::erase_offer( $offer, $offer->email, true ) ) { throw new RuntimeException(); }
+			wp_clear_scheduled_hook( 'qf_privacy_cleanup', array( $offer_id ) );
+			$order->delete_meta_data( '_qf_privacy_cleanup_pending' );
+			$order->save();
+		} catch ( Throwable $e ) {
+			// Keep only the record ID in the retry event; no email or address enters cron.
+			if ( ! wp_next_scheduled( 'qf_privacy_cleanup', array( $offer_id ) ) ) {
+				wp_schedule_single_event( time() + 300, 'qf_privacy_cleanup', array( $offer_id ) );
+			}
+			if ( $offer && $offer->order_id ) {
+				$order = wc_get_order( (int) $offer->order_id );
+				if ( $order && ! $order->get_meta( '_qf_privacy_cleanup_pending' ) ) {
+					$order->update_meta_data( '_qf_privacy_cleanup_pending', 'yes' ); $order->save();
+					$order->add_order_note( __( 'QuoteFlow privacy cleanup is pending. It will retry through WordPress cron.', 'quoteflow-free' ) );
+				}
+			}
+		}
 	}
 
 	public static function export( string $email, int $page = 1 ): array|WP_Error {
@@ -140,7 +183,7 @@ final class Privacy {
 		);
 	}
 
-	private static function erase_offer( object $candidate, string $email ): bool {
+	private static function erase_offer( object $candidate, string $email, bool $anonymized_order = false ): bool {
 		global $wpdb;
 		$requests = $wpdb->prefix . 'qf_requests';
 		$offers = $wpdb->prefix . 'qf_offers';
@@ -159,10 +202,13 @@ final class Privacy {
 			}
 			$rows = self::rows( $wpdb->prepare( "SELECT * FROM {$offers} WHERE id = %d AND email = %s", $candidate->id, $email ) );
 			$offer = $rows[0] ?? null;
-			if ( ! $offer || null !== $offer->order_id || null !== $offer->accepted_at || 'sending' === $offer->email_state
-				|| ! ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) || ( 'offered' === $offer->state && Offers::expired( $offer ) ) ) ) {
-				return false;
-			}
+			if ( ! $offer || ( ! $anonymized_order && 'sending' === $offer->email_state ) ) { return false; }
+			if ( $anonymized_order ) {
+				$order = wc_get_order( (int) $offer->order_id );
+				if ( 'converted' !== $offer->state || ! self::terminal( $order ) || 'yes' !== $order->get_meta( '_anonymized' ) || $offer->conversion_id !== $order->get_meta( '_qf_conversion_id' ) ) { return false; }
+			} elseif ( null !== $offer->order_id || null !== $offer->accepted_at
+				|| ! ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) || ( 'offered' === $offer->state && Offers::expired( $offer ) ) ) ) { return false; }
+
 			$request = $offer->request_id ? ( self::rows( $wpdb->prepare( "SELECT * FROM {$requests} WHERE id = %d", $offer->request_id ) )[0] ?? null ) : null;
 			if ( $request && 0 !== strcasecmp( $request->email, $email ) ) {
 				return false;
@@ -190,7 +236,7 @@ final class Privacy {
 
 	private static function rows( string $query ): array {
 		global $wpdb;
-		$rows = $wpdb->get_results( $query );
+		$rows = $wpdb->get_results( $query ); // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Private helper receives only prepared SQL and trusted table identifiers from this class.
 		if ( $wpdb->last_error ) {
 			throw new RuntimeException();
 		}

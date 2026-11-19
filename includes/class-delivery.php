@@ -17,6 +17,10 @@ final class Delivery {
 		return false;
 	}
 
+	public static function billing_required( object $offer ): bool {
+		return self::required( $offer ) || Taxes::enabled( $offer );
+	}
+
 	public static function countries(): array {
 		return array_intersect_key( WC()->countries->get_shipping_countries(), WC()->countries->get_allowed_countries() );
 	}
@@ -37,15 +41,15 @@ final class Delivery {
 		}
 		$country = $offer->shipping_country;
 		if ( ! isset( self::countries()[ $country ] ) || ( $input['country'] ?? null ) !== $country ) {
-			throw new RuntimeException( __( 'Use the country quoted in this offer. Contact the store for a different destination.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Use the country quoted in this offer. Contact the store for a different destination.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return self::validate_address( $country, $input, 'shipping' );
 	}
 
 	public static function validate_billing( object $offer, array $input ): array {
 		$country = $input['country'] ?? '';
-		if ( ! self::required( $offer ) || ! is_string( $country ) || ! isset( WC()->countries->get_allowed_countries()[ $country ] ) ) {
-			throw new RuntimeException( __( 'Choose a billing country supported by the store.', 'quoteflow-free' ) );
+		if ( ! self::billing_required( $offer ) || ! is_string( $country ) || ! isset( WC()->countries->get_allowed_countries()[ $country ] ) ) {
+			throw new RuntimeException( __( 'Choose a billing country supported by the store.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return self::validate_address( $country, $input, 'billing' );
 	}
@@ -56,21 +60,21 @@ final class Delivery {
 			$key   = substr( $field, strlen( $type ) + 1 );
 			$value = $input[ $key ] ?? '';
 			if ( ! is_string( $value ) || mb_strlen( $value, 'UTF-8' ) > ( 'postcode' === $key ? 20 : 200 ) ) {
-				throw new RuntimeException( __( 'Enter a valid address.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'Enter a valid address.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$value = sanitize_text_field( $value );
 			if ( ! empty( $settings['required'] ) && empty( $settings['hidden'] ) && '' === $value ) {
 				/* translators: 1: Address type, 2: Required field label. */
-				throw new RuntimeException( sprintf( __( 'Complete the %1$s field %2$s.', 'quoteflow-free' ), 'billing' === $type ? __( 'billing address', 'quoteflow-free' ) : __( 'delivery address', 'quoteflow-free' ), $settings['label'] ) );
+				throw new RuntimeException( sprintf( __( 'Complete the %1$s field %2$s.', 'quoteflow-free' ), 'billing' === $type ? __( 'billing address', 'quoteflow-free' ) : __( 'delivery address', 'quoteflow-free' ), $settings['label'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$address[ $key ] = $value;
 		}
 		$states = WC()->countries->get_states( $country );
 		if ( is_array( $states ) && $states && ! isset( $states[ $address['state'] ] ) ) {
-			throw new RuntimeException( __( 'Choose a valid state or province for this address country.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Choose a valid state or province for this address country.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		if ( '' !== ( $address['postcode'] ?? '' ) && ! \WC_Validation::is_postcode( $address['postcode'], $country ) ) {
-			throw new RuntimeException( __( 'Enter a valid postcode for this address country.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Enter a valid postcode for this address country.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$address['postcode'] = wc_format_postcode( $address['postcode'] ?? '', $country );
 		return $address;
@@ -79,7 +83,7 @@ final class Delivery {
 	public static function accepted( object $offer ): array {
 		$address = json_decode( $offer->accepted_address_json ?? '[]', true );
 		if ( ! is_array( $address ) ) {
-			throw new RuntimeException( __( 'The delivery address needs review.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The delivery address needs review.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return self::validate( $offer, $address );
 	}
@@ -91,7 +95,7 @@ final class Delivery {
 		}
 		$address = json_decode( $offer->accepted_billing_json, true );
 		if ( ! is_array( $address ) ) {
-			throw new RuntimeException( __( 'The billing address needs review.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'The billing address needs review.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		return self::validate_billing( $offer, $address );
 	}
@@ -100,28 +104,33 @@ final class Delivery {
 		$shipping = array_values( $order->get_items( 'shipping' ) );
 		$required = self::required( $offer );
 		if ( count( $shipping ) !== ( $required ? 1 : 0 )
-			|| wc_format_decimal( $order->get_shipping_total(), 6 ) !== wc_format_decimal( $offer->shipping_total ?? '0', 6 ) ) {
-			throw new RuntimeException( __( 'The quoted shipping amount changed. Contact the store before paying.', 'quoteflow-free' ) );
+			|| wc_format_decimal( $order->get_shipping_total(), 6 ) !== wc_format_decimal( round( (float) Taxes::accepted( $offer )['shipping']['net'], wc_get_price_decimals() ), 6 ) ) {
+			throw new RuntimeException( __( 'The quoted shipping amount changed. Contact the store before paying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		if ( ! $required ) {
+			if ( self::billing_required( $offer ) ) { self::verify_address( $order, 'billing', self::accepted_billing( $offer ) ); }
 			return;
 		}
 		if ( 'quoteflow' !== $shipping[0]->get_method_id()
-			|| wc_format_decimal( $shipping[0]->get_total(), 6 ) !== wc_format_decimal( $offer->shipping_total, 6 ) ) {
-			throw new RuntimeException( __( 'The quoted shipping method changed. Contact the store before paying.', 'quoteflow-free' ) );
+			|| wc_format_decimal( $shipping[0]->get_total(), 6 ) !== wc_format_decimal( Taxes::accepted( $offer )['shipping']['net'], 6 ) ) {
+			throw new RuntimeException( __( 'The quoted shipping method changed. Contact the store before paying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		foreach ( array( 'billing' => self::accepted_billing( $offer ), 'shipping' => self::accepted( $offer ) ) as $type => $address ) {
-			$stored = $order->get_address( $type );
-			foreach ( $address as $key => $value ) {
-				if ( ( $stored[ $key ] ?? '' ) !== $value ) {
-					throw new RuntimeException( __( 'An accepted address changed. Contact the store before paying.', 'quoteflow-free' ) );
-				}
+			self::verify_address( $order, $type, $address );
+		}
+	}
+
+	private static function verify_address( WC_Order $order, string $type, array $address ): void {
+		$stored = $order->get_address( $type );
+		foreach ( $address as $key => $value ) {
+			if ( ( $stored[ $key ] ?? '' ) !== $value ) {
+				throw new RuntimeException( __( 'An accepted address changed. Contact the store before paying.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
 	}
 
 	public static function address_options( object $offer, string $token ): void {
-		if ( ! self::required( $offer ) || 'offered' !== $offer->state ) {
+		if ( ! self::billing_required( $offer ) || 'offered' !== $offer->state ) {
 			return;
 		}
 		$country = self::form_country( $offer );
@@ -129,12 +138,12 @@ final class Delivery {
 		<form method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
 			<input type="hidden" name="qf_offer" value="<?php echo esc_attr( $token ); ?>">
 			<p><?php esc_html_e( 'Choose your billing address option before filling in the addresses. Updating this form clears any address fields you have entered.', 'quoteflow-free' ); ?></p>
-			<p><label><?php esc_html_e( 'Billing address option', 'quoteflow-free' ); ?>
+			<?php if ( self::required( $offer ) ) : ?><p><label><?php esc_html_e( 'Billing address option', 'quoteflow-free' ); ?>
 				<select name="qf_billing_mode">
 					<option value="same" <?php selected( self::separate_form(), false ); ?>><?php esc_html_e( 'Same as delivery', 'quoteflow-free' ); ?></option>
 					<option value="separate" <?php selected( self::separate_form(), true ); ?>><?php esc_html_e( 'Use a different billing address', 'quoteflow-free' ); ?></option>
 				</select>
-			</label></p>
+			</label></p><?php endif; ?>
 			<p><label><?php esc_html_e( 'Country for a different billing address', 'quoteflow-free' ); ?>
 				<select name="qf_billing_country">
 					<?php foreach ( WC()->countries->get_allowed_countries() as $code => $name ) : ?>
@@ -153,18 +162,18 @@ final class Delivery {
 
 	private static function form_country( object $offer ): string {
 		$country = filter_input( INPUT_GET, 'qf_billing_country', FILTER_UNSAFE_RAW );
-		return is_string( $country ) && isset( WC()->countries->get_allowed_countries()[ $country ] ) ? $country : $offer->shipping_country;
+		return is_string( $country ) && isset( WC()->countries->get_allowed_countries()[ $country ] ) ? $country : ( $offer->shipping_country ?: ( isset( WC()->countries->get_allowed_countries()[ WC()->countries->get_base_country() ] ) ? WC()->countries->get_base_country() : array_key_first( WC()->countries->get_allowed_countries() ) ) );
 	}
 
 	public static function form( object $offer ): void {
-		if ( ! self::required( $offer ) || 'offered' !== $offer->state ) {
+		if ( ! self::billing_required( $offer ) || 'offered' !== $offer->state ) {
 			return;
 		}
-		$separate = self::separate_form();
+		$separate = ! self::required( $offer ) || self::separate_form();
 		?>
 		<input type="hidden" name="billing_mode" value="<?php echo $separate ? 'separate' : 'same'; ?>">
 		<?php
-		self::address_form( $offer->shipping_country, 'delivery', $separate ? __( 'Delivery address', 'quoteflow-free' ) : __( 'Delivery and billing address', 'quoteflow-free' ) );
+		if ( self::required( $offer ) ) { self::address_form( $offer->shipping_country, 'delivery', $separate ? __( 'Delivery address', 'quoteflow-free' ) : __( 'Delivery and billing address', 'quoteflow-free' ) ); }
 		if ( $separate ) {
 			self::address_form( self::form_country( $offer ), 'billing', __( 'Billing address', 'quoteflow-free' ) );
 		}

@@ -165,7 +165,7 @@ final class Request_Form {
 			if ( 429 === $status ) {
 				header( 'Retry-After: 600' );
 			}
-			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => $status ) );
+			wp_die( esc_html( $e->getMessage() ), '', array( 'response' => $status ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This argument is an integer HTTP response code, not HTML.
 		}
 		$return_url = $cart ? wc_get_cart_url() : get_permalink( $items[0]['product_id'] );
 		wp_safe_redirect( add_query_arg( 'qf_received', '1', $return_url ), 303 );
@@ -180,7 +180,7 @@ final class Request_Form {
 			),
 		);
 		if ( ! is_array( $raw ) || ! $raw || count( $raw ) > 20 || ! array_is_list( $raw ) ) {
-			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
 		$items = array();
 		foreach ( $raw as $item ) {
@@ -188,7 +188,7 @@ final class Request_Form {
 				|| ! is_string( $item['product_id'] ) || ! is_string( $item['quantity'] )
 				|| ! ctype_digit( $item['product_id'] ) || ! ctype_digit( $item['quantity'] )
 				|| ! is_array( $item['attributes'] ?? array() ) ) {
-				throw new RuntimeException( __( 'The request is invalid.', 'quoteflow-free' ) );
+				throw new RuntimeException( __( 'The request is invalid.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 			$items[] = array(
 				'product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity'],

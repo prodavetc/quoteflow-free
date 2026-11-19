@@ -38,7 +38,7 @@ final class Pages {
 					$offer   = Offers::find( self::$token );
 					$attempt = (int) self::input( INPUT_POST, 'email_attempt' );
 					if ( ! $offer ) {
-						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 					}
 					check_admin_referer( 'qf_email_' . $offer->id . '_' . $attempt );
 					Offer_Email::send( self::$token, $attempt, '1' === self::input( INPUT_POST, 'confirm_retry' ) );
@@ -47,11 +47,11 @@ final class Pages {
 					self::$token = self::input( INPUT_POST, 'offer_token' );
 					$offer = Offers::find( self::$token );
 					if ( ! $offer ) {
-						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) );
+						throw new RuntimeException( __( 'Offer not found.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 					}
 					check_admin_referer( 'qf_cancel_' . $offer->id );
 					if ( '1' !== self::input( INPUT_POST, 'confirm_cancel' ) ) {
-						throw new RuntimeException( __( 'Confirm that you want to cancel this offer.', 'quoteflow-free' ) );
+						throw new RuntimeException( __( 'Confirm that you want to cancel this offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 					}
 					Offers::close( self::$token, 'canceled', get_current_user_id() );
 					self::$notice = __( 'The offer was canceled.', 'quoteflow-free' );
@@ -73,13 +73,13 @@ final class Pages {
 					} else {
 						$creation = self::input( INPUT_POST, 'creation_id' );
 						if ( ! wp_is_uuid( $creation ) ) {
-							throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+							throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 						}
 						check_admin_referer( 'qf_create_manual_' . $creation );
 						$product_id = filter_var( self::input( INPUT_POST, 'product_id' ), FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
 						$quantity = filter_var( self::input( INPUT_POST, 'quantity' ), FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1, 'max_range' => 100 ) ) );
 						if ( false === $product_id || false === $quantity ) {
-							throw new RuntimeException( __( 'Enter a valid product ID and a whole quantity from 1 to 100.', 'quoteflow-free' ) );
+							throw new RuntimeException( __( 'Enter a valid product ID and a whole quantity from 1 to 100.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 						}
 						self::$token = Offers::create_manual(
 							$creation,
@@ -109,7 +109,7 @@ final class Pages {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'QuoteFlow', 'quoteflow-free' ); ?></h1>
-			<p><?php esc_html_e( 'Use simple products or selected variations in a store with taxes disabled. Quote shipping and a destination country for physical products. Offers expire in 24 hours.', 'quoteflow-free' ); ?></p>
+			<p><?php esc_html_e( 'Use simple products or selected variations. Negotiated amounts are final totals including applicable taxes. Quote shipping and a destination country for physical products. Offers expire in 24 hours.', 'quoteflow-free' ); ?></p>
 			<?php if ( $error ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
 			<?php endif; ?>
@@ -385,6 +385,8 @@ final class Pages {
 		nocache_headers();
 		header( 'Referrer-Policy: no-referrer' );
 		header( 'X-Robots-Tag: noindex, nofollow' );
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'X-Frame-Options: DENY' );
 
 		$token = self::input( INPUT_GET, 'qf_offer' );
 		$offer = Offers::find( $token );
@@ -411,11 +413,11 @@ final class Pages {
 					$address = filter_input( INPUT_POST, 'delivery', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
 					$mode = filter_input( INPUT_POST, 'billing_mode', FILTER_UNSAFE_RAW );
 					if ( null !== $mode && ! in_array( $mode, array( 'same', 'separate' ), true ) ) {
-						throw new RuntimeException( __( 'Choose a valid billing address option.', 'quoteflow-free' ) );
+						throw new RuntimeException( __( 'Choose a valid billing address option.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 					}
 					$billing = 'separate' === $mode ? filter_input( INPUT_POST, 'billing', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) : null;
 					if ( 'separate' === $mode && ! is_array( $billing ) ) {
-						throw new RuntimeException( __( 'Complete the billing address.', 'quoteflow-free' ) );
+						throw new RuntimeException( __( 'Complete the billing address.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 					}
 					$order = Offers::accept( $token, is_array( $address ) ? $address : array(), $billing );
 					if ( ! $order->needs_payment() ) {
@@ -438,12 +440,16 @@ final class Pages {
 		?>
 		<!doctype html>
 		<html <?php language_attributes(); ?>>
+		<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title><?php esc_html_e( 'Your offer', 'quoteflow-free' ); ?></title>
-		<body>
+		<?php wp_register_style( 'quoteflow-offer', plugins_url( 'assets/offer.css', dirname( __DIR__ ) . '/quoteflow-free.php' ), array(), QUOTEFLOW_FREE_VERSION ); wp_print_styles( 'quoteflow-offer' ); ?>
+		</head>
+		<body class="qf-offer">
 		<main>
 			<h1><?php esc_html_e( 'Your offer', 'quoteflow-free' ); ?></h1>
+			<p><?php esc_html_e( 'The negotiated total includes applicable taxes. The tax breakdown is calculated from your address when you accept.', 'quoteflow-free' ); ?></p>
 			<table>
 				<thead><tr>
 					<th scope="col"><?php esc_html_e( 'Product', 'quoteflow-free' ); ?></th>

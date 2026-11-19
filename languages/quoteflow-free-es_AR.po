@@ -1,0 +1,990 @@
+# Copyright (C) 2026 Latse
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: QuoteFlow Free 1.0.0-rc.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/quoteflow-free\n"
+"POT-Creation-Date: 2026-11-19T18:59:13+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Latse\n"
+"Language-Team: Spanish\n"
+"Language: es_AR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: quoteflow-free\n"
+"X-Generator: WP-CLI 2.12.0\n"
+
+#. Plugin Name of the plugin
+#: quoteflow-free.php
+msgid "QuoteFlow Free"
+msgstr "QuoteFlow Free"
+
+#. Description of the plugin
+#: quoteflow-free.php
+msgid ""
+"Receive quote requests, prepare offers and convert acceptance into "
+"WooCommerce orders."
+msgstr ""
+"Recibí solicitudes de cotización, prepará ofertas y convertí su aceptación "
+"en pedidos de WooCommerce."
+
+#. Author of the plugin
+#: quoteflow-free.php
+msgid "Latse"
+msgstr "Latse"
+
+#: includes/class-delivery.php:44
+msgid ""
+"Use the country quoted in this offer. Contact the store for a different "
+"destination."
+msgstr ""
+"Usá el país cotizado en esta oferta. Contactá con la tienda para cambiar el "
+"destino."
+
+#: includes/class-delivery.php:52
+msgid "Choose a billing country supported by the store."
+msgstr "Elegí un país de facturación habilitado por la tienda."
+
+#: includes/class-delivery.php:63
+msgid "Enter a valid address."
+msgstr "Ingresá una dirección válida."
+
+#. translators: 1: Address type, 2: Required field label.
+#: includes/class-delivery.php:68
+#, php-format
+msgid "Complete the %1$s field %2$s."
+msgstr "Completá el campo %2$s de la %1$s."
+
+#. translators: 1: Address type, 2: Required field label.
+#: includes/class-delivery.php:68
+msgid "billing address"
+msgstr "dirección de facturación"
+
+#. translators: 1: Address type, 2: Required field label.
+#: includes/class-delivery.php:68
+msgid "delivery address"
+msgstr "dirección de entrega"
+
+#: includes/class-delivery.php:74
+msgid "Choose a valid state or province for this address country."
+msgstr "Elegí una provincia o estado válido para el país de esta dirección."
+
+#: includes/class-delivery.php:77
+msgid "Enter a valid postcode for this address country."
+msgstr "Ingresá un código postal válido para el país de esta dirección."
+
+#: includes/class-delivery.php:86
+msgid "The delivery address needs review."
+msgstr "La dirección de entrega requiere revisión."
+
+#: includes/class-delivery.php:98
+msgid "The billing address needs review."
+msgstr "La dirección de facturación requiere revisión."
+
+#: includes/class-delivery.php:108
+msgid "The quoted shipping amount changed. Contact the store before paying."
+msgstr ""
+"El importe de envío cotizado cambió. Contactá con la tienda antes de pagar."
+
+#: includes/class-delivery.php:116
+msgid "The quoted shipping method changed. Contact the store before paying."
+msgstr ""
+"El método de envío cotizado cambió. Contactá con la tienda antes de pagar."
+
+#: includes/class-delivery.php:127
+msgid "An accepted address changed. Contact the store before paying."
+msgstr "Una dirección aceptada cambió. Contactá con la tienda antes de pagar."
+
+#: includes/class-delivery.php:140
+msgid ""
+"Choose your billing address option before filling in the addresses. Updating"
+" this form clears any address fields you have entered."
+msgstr ""
+"Elegí la opción de facturación antes de completar las direcciones. "
+"Actualizar este formulario borra los campos que hayas completado."
+
+#: includes/class-delivery.php:141
+msgid "Billing address option"
+msgstr "Opción de dirección de facturación"
+
+#: includes/class-delivery.php:143
+msgid "Same as delivery"
+msgstr "Igual a la dirección de entrega"
+
+#: includes/class-delivery.php:144
+msgid "Use a different billing address"
+msgstr "Usar otra dirección de facturación"
+
+#: includes/class-delivery.php:147
+msgid "Country for a different billing address"
+msgstr "País para una dirección de facturación diferente"
+
+#: includes/class-delivery.php:154
+msgid "Update address form"
+msgstr "Actualizar formulario de direcciones"
+
+#: includes/class-delivery.php:176
+msgid "Delivery address"
+msgstr "Dirección de entrega"
+
+#: includes/class-delivery.php:176
+msgid "Delivery and billing address"
+msgstr "Dirección de entrega y facturación"
+
+#: includes/class-delivery.php:178
+msgid "Billing address"
+msgstr "Dirección de facturación"
+
+#: includes/class-delivery.php:210 includes/class-privacy.php:92
+msgid "Quoted shipping total"
+msgstr "Total de envío cotizado"
+
+#: includes/class-delivery.php:212
+msgid "Shipping country"
+msgstr "País de entrega"
+
+#: includes/class-offer-email.php:15 includes/class-offers.php:336
+#: includes/class-offers.php:345 includes/class-pages.php:41
+#: includes/class-pages.php:50
+msgid "Offer not found."
+msgstr "No se encontró la oferta."
+
+#: includes/class-offer-email.php:20
+msgid "An email is being processed. Please wait and reload."
+msgstr "Se está procesando un correo. Esperá y recargá la página."
+
+#: includes/class-offer-email.php:25
+msgid "Only an active offer awaiting acceptance can be emailed."
+msgstr ""
+"Solo se puede enviar por correo una oferta activa pendiente de aceptación."
+
+#: includes/class-offer-email.php:31
+msgid "This email attempt was already processed. Reload before trying again."
+msgstr ""
+"Este intento de envío ya fue procesado. Recargá la página antes de "
+"reintentar."
+
+#: includes/class-offer-email.php:34
+msgid ""
+"The previous email result is unknown. Check the mail logs before retrying."
+msgstr ""
+"Se desconoce el resultado del envío anterior. Revisá los registros del "
+"correo antes de reintentar."
+
+#. translators: %s: Store name.
+#: includes/class-offer-email.php:39
+#, php-format
+msgid "Your quote from %s"
+msgstr "Tu cotización de %s"
+
+#: includes/class-offer-email.php:44
+msgid "Your quote is ready"
+msgstr "Tu cotización está lista"
+
+#: includes/class-offer-email.php:52
+msgid "The email attempt could not be saved. Please reload."
+msgstr "No se pudo guardar el intento de envío. Recargá la página."
+
+#: includes/class-offer-email.php:57
+msgid "The email result is unknown. Check the mail logs before retrying."
+msgstr ""
+"Se desconoce el resultado del envío. Revisá los registros del correo antes "
+"de reintentar."
+
+#: includes/class-offer-email.php:68
+msgid ""
+"The email result could not be saved. Check the mail logs before retrying."
+msgstr ""
+"No se pudo guardar el resultado del envío. Revisá los registros antes de "
+"reintentar."
+
+#: includes/class-offer-email.php:71
+msgid ""
+"The mail service did not accept the email. Check the store mail "
+"configuration and try again."
+msgstr ""
+"El servicio de correo no aceptó el mensaje. Revisá la configuración de "
+"correo de la tienda y reintentá."
+
+#: includes/class-offer-email.php:86 includes/class-pages.php:452
+msgid ""
+"The negotiated total includes applicable taxes. The tax breakdown is "
+"calculated from your address when you accept."
+msgstr ""
+"El total negociado incluye los impuestos aplicables. El desglose se calcula "
+"según tu dirección al aceptar."
+
+#: includes/class-offer-email.php:87
+msgid ""
+"Review your quote below. Open the private link to accept it and continue to "
+"payment."
+msgstr ""
+"Revisá tu cotización. Abrí el enlace privado para aceptarla y continuar al "
+"pago."
+
+#: includes/class-offer-email.php:90 includes/class-pages.php:455
+msgid "Product"
+msgstr "Producto"
+
+#: includes/class-offer-email.php:91 includes/class-pages.php:137
+#: includes/class-pages.php:456 includes/class-request-form.php:119
+msgid "Quantity"
+msgstr "Cantidad"
+
+#: includes/class-offer-email.php:92 includes/class-pages.php:264
+#: includes/class-pages.php:457
+msgid "Line total"
+msgstr "Total de la línea"
+
+#: includes/class-offer-email.php:105 includes/class-offers.php:460
+#: includes/class-pages.php:470
+msgid "Quoted shipping"
+msgstr "Envío cotizado"
+
+#: includes/class-offer-email.php:109 includes/class-pages.php:474
+#: includes/class-privacy.php:90
+msgid "Total"
+msgstr "Total"
+
+#. translators: 1: Offer expiration date, 2: Store timezone.
+#: includes/class-offer-email.php:113
+#, php-format
+msgid "Valid until %1$s (%2$s)."
+msgstr "Válida hasta %1$s (%2$s)."
+
+#: includes/class-offer-email.php:116
+msgid "View and accept your quote"
+msgstr "Ver y aceptar tu cotización"
+
+#: includes/class-offer-email.php:117
+msgid ""
+"This link is private. Share it only with the person authorized to accept the"
+" quote."
+msgstr ""
+"Este enlace es privado. Compartilo solo con la persona autorizada para "
+"aceptar la cotización."
+
+#: includes/class-offers.php:88 includes/class-offers.php:238
+#: includes/class-pages.php:76
+msgid "Reload the form before creating an offer."
+msgstr "Recargá el formulario antes de crear una oferta."
+
+#: includes/class-offers.php:95
+msgid "This offer is being created. Wait and retry the same form."
+msgstr ""
+"Se está creando esta oferta. Esperá y reintentá con el mismo formulario."
+
+#: includes/class-offers.php:100
+msgid "The offer could not be checked. Retry the same form."
+msgstr "No se pudo comprobar la oferta. Reintentá con el mismo formulario."
+
+#: includes/class-offers.php:109
+msgid ""
+"This form already created a different offer. Reload the page to create a new"
+" one."
+msgstr ""
+"Este formulario ya creó una oferta diferente. Recargá la página para crear "
+"otra."
+
+#: includes/class-offers.php:122 includes/class-request-form.php:183
+msgid "Include between 1 and 20 different products."
+msgstr "Incluí entre 1 y 20 productos diferentes."
+
+#: includes/class-offers.php:130
+msgid "Each product must appear once with a whole quantity."
+msgstr "Cada producto debe aparecer una sola vez con una cantidad entera."
+
+#: includes/class-offers.php:136
+msgid "Each product and option combination must appear once."
+msgstr "Cada combinación de producto y opciones debe aparecer una sola vez."
+
+#: includes/class-offers.php:185
+msgid ""
+"Enter a shipping total of zero or more, using the store currency precision."
+msgstr ""
+"Ingresá un total de envío mayor o igual a cero con la precisión de la moneda"
+" de la tienda."
+
+#: includes/class-offers.php:186
+msgid "Enter a valid positive total for each product."
+msgstr "Ingresá un total positivo válido para cada producto."
+
+#: includes/class-offers.php:208
+msgid "Enter a valid billing email."
+msgstr "Ingresá un correo de facturación válido."
+
+#: includes/class-offers.php:213
+msgid "Enter a total for each product."
+msgstr "Ingresá un total para cada producto."
+
+#: includes/class-offers.php:219 includes/class-offers.php:233
+msgid "The offer total is too large."
+msgstr "El total de la oferta es demasiado alto."
+
+#: includes/class-offers.php:226
+msgid "Shipping charges require a physical product."
+msgstr "Los cargos de envío requieren un producto físico."
+
+#: includes/class-offers.php:229
+msgid "Choose a shipping country supported by the store."
+msgstr "Elegí un país de entrega habilitado por la tienda."
+
+#: includes/class-offers.php:263
+msgid "The offer could not be saved."
+msgstr "No se pudo guardar la oferta."
+
+#: includes/class-offers.php:286
+msgid "Manual offer not found."
+msgstr "No se encontró la oferta manual."
+
+#: includes/class-offers.php:290
+msgid ""
+"This offer needs its original private link. It may predate link recovery or "
+"the store security keys may have changed."
+msgstr ""
+"Esta oferta necesita su enlace privado original. Puede ser anterior a la "
+"recuperación de enlaces o pueden haber cambiado las claves de seguridad de "
+"la tienda."
+
+#: includes/class-offers.php:318
+msgid "Use an available simple product or variation supported by the store."
+msgstr ""
+"Usá un producto simple o una variante disponible admitida por la tienda."
+
+#: includes/class-offers.php:323 includes/class-variations.php:23
+msgid "Choose an available product variation."
+msgstr "Elegí una variante de producto disponible."
+
+#: includes/class-offers.php:332 includes/class-pages.php:406
+msgid "Invalid offer decision."
+msgstr "Decisión de oferta inválida."
+
+#: includes/class-offers.php:340 includes/class-offers.php:378
+msgid "The offer is being processed. Try again."
+msgstr "Se está procesando la oferta. Reintentá."
+
+#: includes/class-offers.php:351
+msgid ""
+"This offer already has an order or a conversion in progress. Manage the "
+"order in WooCommerce."
+msgstr ""
+"Esta oferta ya tiene un pedido o una conversión en curso. Gestioná el pedido"
+" en WooCommerce."
+
+#: includes/class-offers.php:354
+msgid "This offer is closed or expired."
+msgstr "Esta oferta está cerrada o vencida."
+
+#: includes/class-offers.php:362
+msgid "The offer decision could not be saved. Please reload."
+msgstr "No se pudo guardar la decisión sobre la oferta. Recargá la página."
+
+#: includes/class-offers.php:373 includes/class-offers.php:383
+#: includes/class-pages.php:394
+msgid "This offer is unavailable or expired."
+msgstr "Esta oferta no está disponible o venció."
+
+#: includes/class-offers.php:386
+msgid ""
+"This offer was declined or canceled. Contact the store for a new quote."
+msgstr ""
+"Esta oferta fue rechazada o cancelada. Contactá con la tienda para solicitar"
+" otra cotización."
+
+#: includes/class-offers.php:405
+msgid "The store currency changed. Ask for a new offer."
+msgstr "Cambió la moneda de la tienda. Solicitá una nueva oferta."
+
+#: includes/class-offers.php:567
+msgid "Product options changed. Ask the store for a new offer."
+msgstr ""
+"Cambiaron las opciones del producto. Solicitá una nueva oferta a la tienda."
+
+#: includes/class-offers.php:570
+msgid "Product delivery requirements changed. Ask the store for a new offer."
+msgstr ""
+"Cambiaron los requisitos de entrega del producto. Solicitá una nueva oferta."
+
+#: includes/class-offers.php:586
+msgid "The combined quantity exceeds the available product stock."
+msgstr "La cantidad combinada supera el stock disponible del producto."
+
+#: includes/class-offers.php:592 includes/class-pages.php:432
+msgid "The order needs review. Contact the store before trying to pay."
+msgstr ""
+"El pedido requiere revisión. Contactá con la tienda antes de intentar pagar."
+
+#: includes/class-pages.php:32 includes/class-pages.php:103
+msgid "Access denied."
+msgstr "Acceso denegado."
+
+#: includes/class-pages.php:45
+msgid ""
+"The mail service accepted the offer email. Receipt depends on the recipient "
+"mail server."
+msgstr ""
+"El servicio de correo aceptó el mensaje de la oferta. La recepción depende "
+"del servidor del destinatario."
+
+#: includes/class-pages.php:54
+msgid "Confirm that you want to cancel this offer."
+msgstr "Confirmá que querés cancelar esta oferta."
+
+#: includes/class-pages.php:57
+msgid "The offer was canceled."
+msgstr "La oferta fue cancelada."
+
+#: includes/class-pages.php:82
+msgid "Enter a valid product ID and a whole quantity from 1 to 100."
+msgstr "Ingresá un ID de producto válido y una cantidad entera entre 1 y 100."
+
+#: includes/class-pages.php:111
+msgid "QuoteFlow"
+msgstr "QuoteFlow"
+
+#: includes/class-pages.php:112
+msgid ""
+"Use simple products or selected variations. Negotiated amounts are final "
+"totals including applicable taxes. Quote shipping and a destination country "
+"for physical products. Offers expire in 24 hours."
+msgstr ""
+"Usá productos simples o variantes seleccionadas. Los importes negociados son"
+" totales finales con impuestos aplicables incluidos. Cotizá el envío y un "
+"país de destino para productos físicos. Las ofertas vencen en 24 horas."
+
+#: includes/class-pages.php:120
+msgid "Private link to share with the buyer"
+msgstr "Enlace privado para compartir con el comprador"
+
+#: includes/class-pages.php:126
+msgid "QuoteFlow lists"
+msgstr "Listas de QuoteFlow"
+
+#: includes/class-pages.php:127 includes/class-pages.php:210
+msgid "Quote requests"
+msgstr "Solicitudes de cotización"
+
+#: includes/class-pages.php:128 includes/class-pages.php:297
+msgid "Manual offers"
+msgstr "Ofertas manuales"
+
+#: includes/class-pages.php:131
+msgid "Create an offer without a request"
+msgstr "Crear una oferta sin solicitud"
+
+#: includes/class-pages.php:136
+msgid "Product or variation ID"
+msgstr "ID de producto o variante"
+
+#: includes/class-pages.php:138
+msgid "Negotiated total"
+msgstr "Total negociado"
+
+#: includes/class-pages.php:139
+msgid "Buyer billing email"
+msgstr "Correo de facturación del comprador"
+
+#: includes/class-pages.php:141 includes/class-pages.php:272
+msgid "Create offer"
+msgstr "Crear oferta"
+
+#: includes/class-pages.php:158
+msgid "Cancel this offer and prevent its acceptance."
+msgstr "Cancelar esta oferta e impedir su aceptación."
+
+#: includes/class-pages.php:159
+msgid "Cancel offer"
+msgstr "Cancelar oferta"
+
+#. translators: %s: Buyer billing email.
+#: includes/class-pages.php:181
+#, php-format
+msgid "Send this offer to %s."
+msgstr "Enviar esta oferta a %s."
+
+#: includes/class-pages.php:185
+msgid "I checked the mail logs and want to try sending again."
+msgstr "Revisé los registros del correo y quiero reintentar el envío."
+
+#: includes/class-pages.php:187
+msgid "Send offer by email"
+msgstr "Enviar oferta por correo"
+
+#: includes/class-pages.php:194
+msgid "Offer email not requested."
+msgstr "No se solicitó el envío de la oferta por correo."
+
+#: includes/class-pages.php:195
+msgid ""
+"Email in progress or result unknown. Check the mail logs before retrying."
+msgstr ""
+"Envío en curso o resultado desconocido. Revisá los registros antes de "
+"reintentar."
+
+#: includes/class-pages.php:196
+msgid "Offer email accepted by the mail service."
+msgstr "El servicio de correo aceptó el mensaje de la oferta."
+
+#: includes/class-pages.php:197
+msgid "The mail service did not accept the offer email."
+msgstr "El servicio de correo no aceptó el mensaje de la oferta."
+
+#: includes/class-pages.php:199
+msgid "Email result unknown."
+msgstr "Resultado de correo desconocido."
+
+#: includes/class-pages.php:213
+msgid "Buyer email or request number"
+msgstr "Correo del comprador o número de solicitud"
+
+#: includes/class-pages.php:215
+msgid "Request status"
+msgstr "Estado de la solicitud"
+
+#: includes/class-pages.php:220
+msgid "Filter requests"
+msgstr "Filtrar solicitudes"
+
+#: includes/class-pages.php:221
+msgid "Clear filters"
+msgstr "Limpiar filtros"
+
+#. translators: 1: Matching requests, 2: Current page, 3: Total pages.
+#: includes/class-pages.php:226
+#, php-format
+msgid "%1$d request. Page %2$d of %3$d."
+msgid_plural "%1$d requests. Page %2$d of %3$d."
+msgstr[0] "%1$d solicitud. Página %2$d de %3$d."
+msgstr[1] "%1$d solicitudes. Página %2$d de %3$d."
+
+#: includes/class-pages.php:229
+msgid "No requests on this page."
+msgstr "No hay solicitudes en esta página."
+
+#: includes/class-pages.php:233
+msgid "Request"
+msgstr "Solicitud"
+
+#: includes/class-pages.php:234 includes/class-pages.php:309
+msgid "Buyer"
+msgstr "Comprador"
+
+#: includes/class-pages.php:235 includes/class-pages.php:310
+msgid "Details"
+msgstr "Detalles"
+
+#: includes/class-pages.php:236 includes/class-pages.php:308
+msgid "Offer"
+msgstr "Oferta"
+
+#: includes/class-pages.php:272 includes/class-pages.php:332
+msgid "View offer"
+msgstr "Ver oferta"
+
+#: includes/class-pages.php:282
+msgid "Previous requests"
+msgstr "Solicitudes anteriores"
+
+#: includes/class-pages.php:285
+msgid "Older requests"
+msgstr "Solicitudes más antiguas"
+
+#: includes/class-pages.php:298
+msgid ""
+"Open a manual offer to recover its private link, check its email status or "
+"cancel it. Older offers may require the original link."
+msgstr ""
+"Abrí una oferta manual para recuperar su enlace privado, consultar el estado"
+" del correo o cancelarla. Las ofertas antiguas pueden necesitar el enlace "
+"original."
+
+#. translators: 1: Manual offers, 2: Current page, 3: Total pages.
+#: includes/class-pages.php:301
+#, php-format
+msgid "%1$d manual offer. Page %2$d of %3$d."
+msgid_plural "%1$d manual offers. Page %2$d of %3$d."
+msgstr[0] "%1$d oferta manual. Página %2$d de %3$d."
+msgstr[1] "%1$d ofertas manuales. Página %2$d de %3$d."
+
+#: includes/class-pages.php:304
+msgid "No manual offers yet."
+msgstr "Todavía no hay ofertas manuales."
+
+#: includes/class-pages.php:311
+msgid "Status and actions"
+msgstr "Estado y acciones"
+
+#: includes/class-pages.php:341
+msgid "Newer offers"
+msgstr "Ofertas más recientes"
+
+#: includes/class-pages.php:341
+msgid "Older offers"
+msgstr "Ofertas más antiguas"
+
+#. translators: %s: WooCommerce order number.
+#: includes/class-pages.php:361
+#, php-format
+msgid "Open order #%s"
+msgstr "Abrir pedido #%s"
+
+#: includes/class-pages.php:369 includes/class-requests.php:102
+msgid "Expired"
+msgstr "Vencida"
+
+#: includes/class-pages.php:372 includes/class-requests.php:101
+msgid "Awaiting acceptance"
+msgstr "Pendiente de aceptación"
+
+#: includes/class-pages.php:373 includes/class-requests.php:103
+msgid "Order awaiting review"
+msgstr "Pedido pendiente de revisión"
+
+#: includes/class-pages.php:374 includes/class-requests.php:104
+msgid "Order created"
+msgstr "Pedido creado"
+
+#: includes/class-pages.php:375 includes/class-requests.php:105
+msgid "Declined by the buyer"
+msgstr "Rechazada por el comprador"
+
+#: includes/class-pages.php:376 includes/class-requests.php:106
+msgid "Canceled by the store"
+msgstr "Cancelada por la tienda"
+
+#: includes/class-pages.php:378
+msgid "Awaiting review"
+msgstr "Pendiente de revisión"
+
+#: includes/class-pages.php:399
+msgid "Reload the offer to try again."
+msgstr "Recargá la oferta para reintentar."
+
+#: includes/class-pages.php:416
+msgid "Choose a valid billing address option."
+msgstr "Elegí una opción válida de dirección de facturación."
+
+#: includes/class-pages.php:420
+msgid "Complete the billing address."
+msgstr "Completá la dirección de facturación."
+
+#: includes/class-pages.php:424
+msgid "This order no longer needs payment."
+msgstr "Este pedido ya no necesita un pago."
+
+#: includes/class-pages.php:437 includes/class-request-form.php:139
+msgid "Method not allowed."
+msgstr "Método no permitido."
+
+#: includes/class-pages.php:446 includes/class-pages.php:451
+msgid "Your offer"
+msgstr "Tu oferta"
+
+#: includes/class-pages.php:477
+msgid "You declined this offer. Contact the store if you need a new quote."
+msgstr ""
+"Rechazaste esta oferta. Contactá con la tienda si necesitás otra cotización."
+
+#: includes/class-pages.php:478
+msgid ""
+"The store canceled this offer. Contact the store if you need a new quote."
+msgstr ""
+"La tienda canceló esta oferta. Contactá con ella si necesitás otra "
+"cotización."
+
+#: includes/class-pages.php:484
+msgid "Accept and continue to payment"
+msgstr "Aceptar y continuar al pago"
+
+#: includes/class-pages.php:486
+msgid "Decline offer"
+msgstr "Rechazar oferta"
+
+#: includes/class-privacy.php:28 includes/class-privacy.php:35
+msgid "QuoteFlow requests and offers"
+msgstr "Solicitudes y ofertas de QuoteFlow"
+
+#: includes/class-privacy.php:67
+msgid ""
+"QuoteFlow privacy cleanup is pending. It will retry through WordPress cron."
+msgstr ""
+"La limpieza de privacidad de QuoteFlow está pendiente. Se reintentará "
+"mediante el cron de WordPress."
+
+#: includes/class-privacy.php:76 includes/class-privacy.php:134
+msgid "Enter a valid email and page."
+msgstr "Ingresá un correo y una página válidos."
+
+#: includes/class-privacy.php:81
+msgid "Record ID"
+msgstr "ID del registro"
+
+#: includes/class-privacy.php:82
+msgid "Email"
+msgstr "Correo electrónico"
+
+#: includes/class-privacy.php:83
+msgid "Buyer note"
+msgstr "Nota del comprador"
+
+#: includes/class-privacy.php:84
+msgid "Requested at (UTC)"
+msgstr "Fecha de solicitud (UTC)"
+
+#: includes/class-privacy.php:85
+msgid "First product"
+msgstr "Primer producto"
+
+#: includes/class-privacy.php:86
+msgid "First product quantity"
+msgstr "Cantidad del primer producto"
+
+#: includes/class-privacy.php:87
+msgid "Quoted or requested items (JSON)"
+msgstr "Productos cotizados o solicitados (JSON)"
+
+#: includes/class-privacy.php:88
+msgid "Related request ID"
+msgstr "ID de solicitud relacionada"
+
+#: includes/class-privacy.php:89
+msgid "Offer state"
+msgstr "Estado de la oferta"
+
+#: includes/class-privacy.php:91
+msgid "Currency"
+msgstr "Moneda"
+
+#: includes/class-privacy.php:93
+msgid "Quoted shipping country"
+msgstr "País de entrega cotizado"
+
+#: includes/class-privacy.php:94
+msgid "Accepted address (JSON)"
+msgstr "Dirección aceptada (JSON)"
+
+#: includes/class-privacy.php:95
+msgid "Accepted billing address (JSON)"
+msgstr "Dirección de facturación aceptada (JSON)"
+
+#: includes/class-privacy.php:96
+msgid "Expires at (UTC)"
+msgstr "Fecha de vencimiento (UTC)"
+
+#: includes/class-privacy.php:97
+msgid "Accepted at (UTC)"
+msgstr "Fecha de aceptación (UTC)"
+
+#: includes/class-privacy.php:98
+msgid "Closed at (UTC)"
+msgstr "Fecha de cierre (UTC)"
+
+#: includes/class-privacy.php:99
+msgid "Offer email state"
+msgstr "Estado del correo de la oferta"
+
+#: includes/class-privacy.php:100
+msgid "Offer email attempts"
+msgstr "Intentos de correo de la oferta"
+
+#: includes/class-privacy.php:101
+msgid "Email attempted at (UTC)"
+msgstr "Fecha del intento de correo (UTC)"
+
+#: includes/class-privacy.php:102
+msgid "Email accepted by transport at (UTC)"
+msgstr "Fecha de aceptación del correo por el servicio (UTC)"
+
+#: includes/class-privacy.php:103
+msgid "WooCommerce order ID"
+msgstr "ID del pedido de WooCommerce"
+
+#: includes/class-privacy.php:119
+msgid "QuoteFlow requests"
+msgstr "Solicitudes de QuoteFlow"
+
+#: includes/class-privacy.php:119
+msgid "QuoteFlow offers"
+msgstr "Ofertas de QuoteFlow"
+
+#: includes/class-privacy.php:180
+msgid ""
+"QuoteFlow retained active offers, records linked to orders or conversions, "
+"and records requiring review (including an unknown email result). Close "
+"active offers and review the related WooCommerce orders or mail logs before "
+"retrying erasure. WooCommerce manages order data separately."
+msgstr ""
+"QuoteFlow conservó ofertas activas, registros vinculados a pedidos o "
+"conversiones y registros que requieren revisión, incluidos envíos de "
+"resultado desconocido. Cerrá las ofertas activas y revisá los pedidos o "
+"registros de correo antes de reintentar el borrado. WooCommerce gestiona los"
+" datos del pedido por separado."
+
+#: includes/class-privacy.php:258
+msgid ""
+"QuoteFlow privacy processing could not finish. A record may be in use. Wait "
+"for current operations to finish and retry; completed deletions are "
+"preserved."
+msgstr ""
+"No se pudo completar el procesamiento de privacidad de QuoteFlow. Un "
+"registro puede estar en uso. Esperá a que terminen las operaciones y "
+"reintentá; los borrados completados se conservan."
+
+#: includes/class-request-form.php:64
+msgid "Quote requests require whole quantities."
+msgstr "Las solicitudes de cotización requieren cantidades enteras."
+
+#: includes/class-request-form.php:95 includes/class-request-form.php:128
+msgid "Request a quote"
+msgstr "Solicitar cotización"
+
+#: includes/class-request-form.php:97
+msgid "Your request was received. The store will contact you with an offer."
+msgstr ""
+"Recibimos tu solicitud. La tienda se pondrá en contacto con vos con una "
+"oferta."
+
+#: includes/class-request-form.php:122
+msgid "Billing email"
+msgstr "Correo de facturación"
+
+#: includes/class-request-form.php:124
+msgid "What do you need?"
+msgstr "¿Qué necesitás?"
+
+#: includes/class-request-form.php:126
+msgid "Leave this field empty"
+msgstr "Dejá este campo vacío"
+
+#: includes/class-request-form.php:127
+msgid "The store will use your email to respond to this request."
+msgstr "La tienda usará tu correo para responder a esta solicitud."
+
+#: includes/class-request-form.php:150
+msgid "Reload the form to try again."
+msgstr "Recargá el formulario para reintentar."
+
+#: includes/class-request-form.php:153 includes/class-request-form.php:191
+msgid "The request is invalid."
+msgstr "La solicitud es inválida."
+
+#: includes/class-requests.php:43
+msgid "Enter a valid email and a note of up to 2000 characters."
+msgstr "Ingresá un correo válido y una nota de hasta 2000 caracteres."
+
+#: includes/class-requests.php:60
+msgid "The request is being processed. Please try again."
+msgstr "Se está procesando la solicitud. Reintentá."
+
+#: includes/class-requests.php:67
+msgid ""
+"This form was already submitted. Reload it to send a different request."
+msgstr ""
+"Este formulario ya fue enviado. Recargalo para enviar una solicitud "
+"diferente."
+
+#: includes/class-requests.php:72
+msgid "Too many requests. Please wait ten minutes and try again."
+msgstr "Demasiadas solicitudes. Esperá diez minutos y reintentá."
+
+#: includes/class-requests.php:90
+msgid "The request could not be saved. Please try again."
+msgstr "No se pudo guardar la solicitud. Reintentá."
+
+#: includes/class-requests.php:99
+msgid "All requests"
+msgstr "Todas las solicitudes"
+
+#: includes/class-requests.php:100
+msgid "Without an offer"
+msgstr "Sin oferta"
+
+#: includes/class-requests.php:167 includes/class-requests.php:179
+msgid "Request not found."
+msgstr "No se encontró la solicitud."
+
+#: includes/class-requests.php:173
+msgid "The offer is being prepared. Please try again."
+msgstr "Se está preparando la oferta. Reintentá."
+
+#: includes/class-requests.php:185
+msgid ""
+"The store security keys changed. The original private link is required."
+msgstr ""
+"Cambiaron las claves de seguridad de la tienda. Se requiere el enlace "
+"privado original."
+
+#: includes/class-requests.php:192
+msgid "Enter a total for each requested product."
+msgstr "Ingresá un total para cada producto solicitado."
+
+#: includes/class-taxes.php:20 includes/class-taxes.php:24
+msgid "Tax settings could not be checked. Try again."
+msgstr "No se pudo comprobar la configuración de impuestos. Reintentá."
+
+#: includes/class-taxes.php:32
+msgid "Tax settings changed. Ask the store for a new offer."
+msgstr ""
+"Cambió la configuración de impuestos. Solicitá una nueva oferta a la tienda."
+
+#: includes/class-taxes.php:37
+msgid "Product tax settings changed. Ask for a new offer."
+msgstr ""
+"Cambió la configuración de impuestos del producto. Solicitá una nueva "
+"oferta."
+
+#: includes/class-taxes.php:89
+msgid "The accepted tax calculation needs review."
+msgstr "El cálculo de impuestos aceptado requiere revisión."
+
+#: includes/class-taxes.php:111
+msgid ""
+"The accepted price or tax calculation changed. Contact the store before "
+"paying."
+msgstr ""
+"Cambió el precio o el cálculo de impuestos aceptado. Contactá con la tienda "
+"antes de pagar."
+
+#: includes/class-taxes.php:119
+msgid "The accepted shipping taxes changed."
+msgstr "Cambiaron los impuestos de envío aceptados."
+
+#: includes/class-taxes.php:128
+msgid "Duplicate tax lines need review."
+msgstr "Las líneas de impuestos duplicadas requieren revisión."
+
+#: includes/class-taxes.php:137
+msgid "The accepted order totals changed. Contact the store before paying."
+msgstr ""
+"Cambiaron los totales aceptados del pedido. Contactá con la tienda antes de "
+"pagar."
+
+#: includes/class-variations.php:13
+msgid "Product not found."
+msgstr "No se encontró el producto."
+
+#: includes/class-variations.php:17
+msgid "This product does not have selectable options."
+msgstr "Este producto no tiene opciones seleccionables."
+
+#: includes/class-variations.php:32
+msgid "Choose valid options for every variation attribute."
+msgstr "Elegí opciones válidas para cada atributo de la variante."
+
+#: includes/class-variations.php:37
+msgid "The selected product options are invalid."
+msgstr "Las opciones de producto seleccionadas son inválidas."
+
+#: includes/class-variations.php:44
+msgid "This combination of product options is unavailable."
+msgstr "Esta combinación de opciones no está disponible."
+
+#: includes/class-variations.php:53
+msgid "Choose an option"
+msgstr "Elegí una opción"
+
+#: includes/class-taxes.php:105
+msgid "The order tax mode changed."
+msgstr "Cambió el modo de impuestos del pedido."

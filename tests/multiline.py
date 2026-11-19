@@ -121,7 +121,7 @@ for storage in ("enable", "disable"):
     assert request(guest, payment_link, payment)[0] == 200
     assert order_lines(token)["state"] == "pending"
     wp("eval", f"""$o=wc_get_order({order['id']}); $items=array_values($o->get_items());
-        $items[0]->set_total('19.95'); $items[0]->save(); $items[1]->set_total('9.99'); $items[1]->save(); $o->calculate_totals(false);""")
+        $items[0]->set_total('19.95'); $items[0]->save(); $items[1]->set_total('9.99'); $items[1]->set_subtotal('9.99'); $items[1]->save(); $o->calculate_totals(false);""")
     payment_page = request(guest, payment_link)[2]
     payment = next(form["fields"] for form in Forms(payment_page).forms if "woocommerce-pay-nonce" in form["fields"])
     payment["payment_method"] = "bacs"

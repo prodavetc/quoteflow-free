@@ -1,0 +1,69 @@
+name: Validate release package
+on:
+  push:
+    branches: [dev]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: docker run --rm -v "$PWD:/source:ro" -w /source php:${{ matrix.php }}-cli sh -c 'find . -name "*.php" -not -path "./work/*" -print0 | xargs -0 -n1 php -l'
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/build.py
+      - name: Reproducible package
+        run: |
+          cp dist/*.zip /tmp/quoteflow-first.zip
+          python scripts/build.py
+          cmp /tmp/quoteflow-first.zip dist/*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quoteflow-development-package
+          path: dist/*
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        include:
+          - php: '8.3'
+            image: wordpress:7.1.4-php8.3-apache@sha256:8b64037bb2a3bdc41bebccb165f20ad5e4c786b684ae4a2bd5981f98aa1eb107
+          - php: '8.4'
+            image: wordpress:7.1.4-php8.4-apache@sha256:4bf2c44f19a5eba28de4e5cbe50e1c5dc55ae3f8b894f681f4d7676a7e2512e5
+    env:
+      QF_WP_IMAGE: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Provision disposable store
+        run: python scripts/setup-test-store.py --disposable
+      - name: Complete functional suite
+        run: python scripts/verify.py compose.test.yaml --disposable
+      - name: Plugin Check
+        run: python scripts/check-plugin.py compose.test.yaml --install
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-php-${{ matrix.php }}
+          path: work/reports/*
+          if-no-files-found: ignore
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f compose.test.yaml logs --tail=150
+      - name: Stop disposable services
+        if: always()
+        run: docker compose -f compose.test.yaml down
