@@ -22,7 +22,7 @@ else:
 if wp('plugin','is-installed','woocommerce',check=False).returncode:
     print(wp('plugin','install','woocommerce','--version=11.3.0','--activate').stdout)
 else:wp('plugin','activate','woocommerce')
-wp('eval', "WC_Install::create_pages();update_option('woocommerce_bacs_settings',['enabled'=>'yes','title'=>'Local test transfer']);update_option('woocommerce_coming_soon','no');update_option('woocommerce_calc_taxes','no');")
+wp('eval', "WC_Install::create_pages();delete_transient('_wc_activation_redirect');update_option('woocommerce_bacs_settings',['enabled'=>'yes','title'=>'Local test transfer']);update_option('woocommerce_coming_soon','no');update_option('woocommerce_calc_taxes','no');")
 if wp('theme','is-installed','twentytwentyfive',check=False).returncode:
     wp('theme','install','twentytwentyfive','--activate')
 else: wp('theme','activate','twentytwentyfive')

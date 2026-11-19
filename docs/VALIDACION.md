@@ -16,6 +16,8 @@ Estado: candidata de staging. No equivale a aprobación para producción ni apro
 - Compatibilidad adicional: creación, conversión y reintento en WordPress 7.0 y en PHP 8.4.27. La matriz de CI agrega ejecución completa sobre instalaciones limpias en PHP 8.3/8.4.
 - Plugin Check 2.2.0: cero errores en el análisis local; advertencias de SQL directo, ausencia de caché y otras advertencias revisables conservadas en el informe. Las supresiones específicas llevan su justificación en el código.
 
+El bootstrap de la tienda de pruebas completa su configuración y elimina la redirección temporal de bienvenida de WooCommerce para que la velocidad del runner no cambie el destino del primer acceso de administración. Esto solo afecta a la tienda descartable.
+
 ## Artefactos y CI
 
 El builder fija nombres, permisos y fechas del ZIP; utiliza almacenamiento sin compresión para evitar diferencias entre versiones de zlib. Emite SHA256. La CI compara dos construcciones, verifica sintaxis y ejecuta integración y Plugin Check en instalaciones descartables. Consultar el resultado del commit en GitHub; un workflow configurado todavía no es evidencia de ejecución aprobada.
