@@ -13,7 +13,7 @@ La bandeja permite recuperar el enlace de una oferta creada desde una solicitud.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.8.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.9.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -35,11 +35,21 @@ Antes de aceptar y pagar se comprueban la variante y los atributos cotizados. Lo
 
 Al responder una solicitud de productos físicos, el comerciante completa **Quoted shipping total** y **Shipping country**. El coste puede ser cero para envío gratuito. El país debe estar habilitado para venta y envío en WooCommerce. En una oferta creada sin solicitud, estos campos se completan junto al producto y su precio.
 
-La página y el correo de la oferta muestran el envío y el país de destino. Antes de aceptar, el comprador completa la dirección correspondiente a ese país. El plugin valida los campos obligatorios según WooCommerce, el estado o provincia y el código postal. Esa dirección se utiliza para entrega y facturación.
+La página y el correo de la oferta muestran el envío y el país de destino. Antes de aceptar, el comprador completa la dirección correspondiente a ese país. El plugin valida los campos obligatorios según WooCommerce, el estado o provincia y el código postal. Por defecto, esa dirección se utiliza también para facturación. El comprador puede elegir una dirección de facturación distinta.
 
-La primera aceptación guarda la dirección y el pedido obtiene una línea **Quoted shipping** con el importe acordado. Los reintentos recuperan ese pedido y su dirección aceptada. Un cambio de destino requiere una nueva oferta. Antes del pago se comprueban los importes y la dirección, incluso cuando una alteración conserva el total general.
+La primera aceptación guarda las direcciones y el pedido obtiene una línea **Quoted shipping** con el importe acordado. Los reintentos recuperan ese pedido y sus direcciones aceptadas. Un cambio de destino requiere una nueva oferta. Antes del pago se comprueban los importes y ambas direcciones, incluso cuando una alteración conserva el total general.
 
 Este flujo usa un precio de envío fijado por el comerciante para el país cotizado. El cálculo de tarifas de transportistas en tiempo real queda pendiente. Las ofertas anteriores creadas con productos virtuales se interpretan con envío cero. Si cambia el requisito de entrega de un producto después de cotizar, se debe preparar otra oferta.
+
+## Direcciones de entrega y facturación
+
+Las ofertas de productos físicos muestran **Billing address option**, con **Same as delivery** como valor inicial. Para facturar a otro domicilio, elegir **Use a different billing address**, seleccionar el país de facturación y pulsar **Update address form** antes de introducir las direcciones. La actualización recarga los campos y descarta lo escrito; el texto del formulario lo indica. Este flujo funciona sin JavaScript y cambiar sus opciones conserva el estado de la oferta.
+
+El país de facturación puede ser distinto del país de entrega, siempre que esté habilitado para venta en WooCommerce. Los campos y las provincias o estados se renderizan para el país de cada dirección. El servidor comprueba cada dirección por separado, incluidos sus campos obligatorios y el formato del código postal. El correo de facturación sigue siendo el correo al que se preparó la oferta. No se recoge un teléfono en este flujo.
+
+El país de entrega y el importe cotizado de envío siguen fijos. Cambiar el país de facturación no modifica el destino de entrega ni el precio. Las direcciones separadas están disponibles en ofertas que requieren envío; las ofertas exclusivamente virtuales mantienen su recorrido actual.
+
+Al aceptar se guardan dos snapshots. Reenviar el formulario o recuperar una conversión usa ambos valores aceptados. Una alteración de cualquiera de ellos en el pedido bloquea el pago y la recuperación para revisión. Las ofertas aceptadas antes de esta versión, con snapshot de facturación nulo, siguen usando la dirección de entrega para ambos fines. La exportación de privacidad incluye las dos direcciones guardadas.
 
 ## Rechazo y cancelación
 
@@ -63,7 +73,7 @@ Los registros anteriores comienzan con el correo pendiente de solicitud. La actu
 
 QuoteFlow se integra en **Herramientas → Exportar datos personales** y **Herramientas → Borrar datos personales** de WordPress. El administrador utiliza el flujo nativo de solicitudes y su confirmación, buscando por el correo exacto del comprador. También cubre compradores invitados. La integración sigue los [contratos de privacidad de WordPress](https://developer.wordpress.org/plugins/privacy/adding-the-personal-data-eraser-to-your-plugin/).
 
-La exportación incluye solicitudes, notas, productos y opciones guardadas, importes, estados y fechas, historial de intentos de correo, dirección aceptada e identificador del pedido relacionado. Los enlaces privados, sus hashes, las claves de idempotencia y las huellas de límite de solicitudes quedan fuera del archivo exportado. WooCommerce exporta los datos propios del pedido mediante su integración independiente.
+La exportación incluye solicitudes, notas, productos y opciones guardadas, importes, estados y fechas, historial de intentos de correo, direcciones aceptadas de entrega y facturación e identificador del pedido relacionado. Los enlaces privados, sus hashes, las claves de idempotencia y las huellas de límite de solicitudes quedan fuera del archivo exportado. WooCommerce exporta los datos propios del pedido mediante su integración independiente.
 
 El borrado elimina las solicitudes sin oferta y las ofertas rechazadas, canceladas o vencidas que nunca iniciaron una conversión ni tienen un pedido. La oferta y su solicitud relacionada se eliminan juntas; su enlace privado deja de funcionar. Se eliminan también las notas, los snapshots, los hashes y los metadatos que contenían esas filas. Los lotes se procesan sin saltar registros al reducirse la tabla y los reintentos convergen sobre los datos restantes.
 
@@ -94,6 +104,7 @@ python3 tests/decisions.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/delivery.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/variations.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/privacy.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/billing.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -108,11 +119,13 @@ La prueba de entrega cubre solicitud de un producto físico, país cotizado, dir
 
 La prueba de variantes cubre formularios de producto y carrito, opciones abiertas, atributos globales, stock compartido o por variante, recuperación del pedido y pago en HPOS y almacenamiento clásico. También comprueba una variante física con envío cotizado.
 
-Esta versión corrige la función que renderiza los campos de dirección. La prueba comprueba ahora que el formulario de dirección se renderice completo antes de probar su envío.
+Desde la versión 0.7, los campos de dirección usan la función de renderizado de WooCommerce corregida. La prueba comprueba ahora que el formulario de dirección se renderice completo antes de probar su envío.
 
 La prueba de privacidad utiliza los hooks registrados y el AJAX nativo de WordPress. Comprueba exportación por correo, exclusión de claves privadas, permisos y nonces, eliminación de más de un lote, reintentos, lectura de registros anteriores y conservación de pedidos con HPOS y almacenamiento clásico. También comprueba bloqueos frente a respuestas, correos y decisiones, y borrados concurrentes. Intercepta temporalmente el correo para evitar entregas externas.
 
-Quedan pendientes impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
+La prueba de facturación cubre selección de opciones sin modificar la oferta, formularios por país, entrega en EE. UU. con facturación en Reino Unido, países no permitidos, datos inválidos, aceptación concurrente, reintentos, recuperación y pago. Comprueba también la exportación de ambas direcciones y la compatibilidad con snapshots anteriores, con HPOS y almacenamiento clásico. La revisión visual sigue pendiente.
+
+Quedan pendientes impuestos, tarifas de envío en tiempo real, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 
 ## Desarrollo y producción
 

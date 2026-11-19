@@ -50,6 +50,7 @@ final class Privacy {
 			'shipping_total' => __( 'Quoted shipping total', 'quoteflow-free' ),
 			'shipping_country' => __( 'Quoted shipping country', 'quoteflow-free' ),
 			'accepted_address_json' => __( 'Accepted address (JSON)', 'quoteflow-free' ),
+			'accepted_billing_json' => __( 'Accepted billing address (JSON)', 'quoteflow-free' ),
 			'expires_at' => __( 'Expires at (UTC)', 'quoteflow-free' ),
 			'accepted_at' => __( 'Accepted at (UTC)', 'quoteflow-free' ),
 			'closed_at' => __( 'Closed at (UTC)', 'quoteflow-free' ),

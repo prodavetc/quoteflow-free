@@ -35,6 +35,7 @@ final class Offers {
 				shipping_total decimal(20,6) NOT NULL DEFAULT 0,
 				shipping_country char(2) NOT NULL DEFAULT '',
 				accepted_address_json longtext DEFAULT NULL,
+				accepted_billing_json longtext DEFAULT NULL,
 				currency char(3) NOT NULL,
 				email varchar(254) NOT NULL,
 				expires_at datetime NOT NULL,
@@ -279,7 +280,7 @@ final class Offers {
 		}
 	}
 
-	public static function accept( string $token, array $address = array() ): WC_Order {
+	public static function accept( string $token, array $address = array(), ?array $billing = null ): WC_Order {
 		global $wpdb;
 		$offer = self::find( $token );
 		if ( ! $offer || self::expired( $offer ) ) {
@@ -311,6 +312,8 @@ final class Offers {
 				self::validate_items( $offer );
 				$address = Delivery::validate( $offer, $address );
 				$offer->accepted_address_json = wp_json_encode( $address );
+				$offer->accepted_billing_json = Delivery::required( $offer )
+					? wp_json_encode( Delivery::validate_billing( $offer, $billing ?? $address ) ) : null;
 				if ( get_woocommerce_currency() !== $offer->currency ) {
 					throw new RuntimeException( __( 'The store currency changed. Ask for a new offer.', 'quoteflow-free' ) );
 				}
@@ -320,6 +323,7 @@ final class Offers {
 						'state' => 'creating',
 						'accepted_at' => gmdate( 'Y-m-d H:i:s' ),
 						'accepted_address_json' => $offer->accepted_address_json,
+						'accepted_billing_json' => $offer->accepted_billing_json,
 					),
 					array( 'id' => $offer->id, 'state' => 'offered' )
 				);
@@ -359,7 +363,7 @@ final class Offers {
 		if ( Delivery::required( $offer ) ) {
 			$address = Delivery::accepted( $offer );
 			$order->set_address( $address, 'shipping' );
-			$order->set_address( $address, 'billing' );
+			$order->set_address( Delivery::accepted_billing( $offer ), 'billing' );
 			$shipping = new \WC_Order_Item_Shipping();
 			$shipping->set_method_id( 'quoteflow' );
 			$shipping->set_method_title( __( 'Quoted shipping', 'quoteflow-free' ) );

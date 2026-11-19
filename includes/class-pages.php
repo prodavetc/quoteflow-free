@@ -293,7 +293,15 @@ final class Pages {
 					$offer = Offers::find( $token );
 				} else {
 					$address = filter_input( INPUT_POST, 'delivery', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-					$order = Offers::accept( $token, is_array( $address ) ? $address : array() );
+					$mode = filter_input( INPUT_POST, 'billing_mode', FILTER_UNSAFE_RAW );
+					if ( null !== $mode && ! in_array( $mode, array( 'same', 'separate' ), true ) ) {
+						throw new RuntimeException( __( 'Choose a valid billing address option.', 'quoteflow-free' ) );
+					}
+					$billing = 'separate' === $mode ? filter_input( INPUT_POST, 'billing', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) : null;
+					if ( 'separate' === $mode && ! is_array( $billing ) ) {
+						throw new RuntimeException( __( 'Complete the billing address.', 'quoteflow-free' ) );
+					}
+					$order = Offers::accept( $token, is_array( $address ) ? $address : array(), $billing );
 					if ( ! $order->needs_payment() ) {
 						wp_die( esc_html__( 'This order no longer needs payment.', 'quoteflow-free' ), '', array( 'response' => 200 ) );
 					}
@@ -347,6 +355,7 @@ final class Pages {
 					? esc_html__( 'You declined this offer. Contact the store if you need a new quote.', 'quoteflow-free' )
 					: esc_html__( 'The store canceled this offer. Contact the store if you need a new quote.', 'quoteflow-free' ); ?></p>
 			<?php else : ?>
+				<?php Delivery::address_options( $offer, $token ); ?>
 				<form method="post">
 					<?php wp_nonce_field( 'qf_accept_' . $token, 'qf_nonce', false ); ?>
 					<?php Delivery::form( $offer ); ?>
