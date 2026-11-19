@@ -19,11 +19,21 @@ La lista muestra el número de resultados y de páginas, con 20 solicitudes por 
 
 Las ofertas vencidas se calculan por su fecha UTC dentro del estado pendiente de aceptación. Los pedidos creados, los rechazos y las cancelaciones conservan su propio estado aunque su fecha de oferta ya haya pasado. **Order created** indica que se creó el pedido; su estado de pago se consulta en WooCommerce.
 
-Las solicitudes convertidas muestran **Open order**, cuando el operador tiene permiso para editar ese pedido. El enlace abre la pantalla nativa de WooCommerce, tanto con HPOS como con almacenamiento clásico. **View offer** conserva su función de recuperar el enlace privado desde una solicitud, con los filtros actuales. La bandeja lista solicitudes; las ofertas manuales sin solicitud mantienen su recorrido de creación y enlace compartido.
+Las solicitudes convertidas muestran **Open order**, cuando el operador tiene permiso para editar ese pedido. El enlace abre la pantalla nativa de WooCommerce, tanto con HPOS como con almacenamiento clásico. **View offer** conserva su función de recuperar el enlace privado desde una solicitud, con los filtros actuales. La pestaña **Quote requests** lista solicitudes. Las ofertas sin solicitud aparecen en **Manual offers**.
+
+## Ofertas manuales
+
+La pestaña **Manual offers** muestra las ofertas creadas sin solicitud, con el comprador, los productos, el total y los estados de oferta y correo. Se ordenan de la más reciente a la más antigua y se muestran en páginas de 20 registros. Las ofertas ligadas a una solicitud permanecen en **Quote requests**.
+
+Desde **View offer**, el comerciante recupera el enlace privado de las ofertas manuales nuevas, consulta su envío por correo y accede a la cancelación cuando corresponde. Reabrir la oferta conserva el enlace, los intentos de correo, el vencimiento y el estado. El envío y la cancelación siguen requiriendo sus acciones explícitas. Los pedidos creados tienen acceso a la pantalla nativa de WooCommerce cuando el operador tiene permiso para editarlos.
+
+Desde la versión 0.11, el token de una oferta manual nueva se deriva de su identificador aleatorio de conversión y una clave privada de WordPress, con un dominio exclusivo para enlaces manuales. Se guarda su hash, y la recuperación comprueba que el token derivado coincida antes de mostrarlo. El token y el identificador usado para derivarlo quedan excluidos de la exportación de privacidad.
+
+Las ofertas anteriores con tokens aleatorios, y las creadas por código con un token explícito, pueden necesitar el enlace original: su hash no permite reconstruirlo. La pantalla informa de ese caso. Cambiar las claves de autenticación de WordPress impide recuperar los enlaces derivados con la clave anterior; los enlaces ya compartidos conservan la validación por su hash. Esta versión conserva los enlaces y datos existentes.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.10.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.11.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -116,6 +126,7 @@ python3 tests/variations.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/privacy.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/billing.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/inbox.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/manual_offers.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -137,6 +148,8 @@ La prueba de privacidad utiliza los hooks registrados y el AJAX nativo de WordPr
 La prueba de facturación cubre selección de opciones sin modificar la oferta, formularios por país, entrega en EE. UU. con facturación en Reino Unido, países no permitidos, datos inválidos, aceptación concurrente, reintentos, recuperación y pago. Comprueba también la exportación de ambas direcciones y la compatibilidad con snapshots anteriores, con HPOS y almacenamiento clásico. La revisión visual sigue pendiente.
 
 La prueba de bandeja cubre todos los estados, búsquedas por correo e ID, combinación de filtros, caracteres literales como `%` y `_`, páginas fuera del rango, más de una página y el límite exacto de 20 resultados. Comprueba los enlaces nativos de pedidos y la recuperación de una oferta desde una lista filtrada, con HPOS y almacenamiento clásico.
+
+La prueba de ofertas manuales cubre la creación en el administrador, la lista paginada, los permisos y nonces, la recuperación repetida del mismo enlace sin efectos secundarios, correo capturado, cancelación y conversión a pedido. También comprueba enlaces aleatorios anteriores, cambios de clave y exclusión de ofertas ligadas a solicitudes, con HPOS y almacenamiento clásico.
 
 Quedan pendientes impuestos, tarifas de envío en tiempo real, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 

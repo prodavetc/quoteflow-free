@@ -55,6 +55,10 @@ final class Pages {
 					}
 					Offers::close( self::$token, 'canceled', get_current_user_id() );
 					self::$notice = __( 'The offer was canceled.', 'quoteflow-free' );
+				} elseif ( 'view_manual' === self::input( INPUT_POST, 'qf_action' ) ) {
+					$offer_id = (int) self::input( INPUT_POST, 'offer_id' );
+					check_admin_referer( 'qf_view_manual_' . $offer_id );
+					self::$token = Offers::recover_manual_token( $offer_id );
 				} else {
 					check_admin_referer( 'qf_create_offer' );
 					$request_id = (int) self::input( INPUT_POST, 'request_id' );
@@ -110,7 +114,11 @@ final class Pages {
 				<?php self::email_form( $token ); ?>
 				<?php self::cancel_form( $token ); ?>
 			<?php endif; ?>
-			<?php self::inbox(); ?>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'QuoteFlow lists', 'quoteflow-free' ); ?>">
+				<a class="nav-tab <?php echo 'manual' !== self::input( INPUT_GET, 'qf_view' ) ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( 'page', 'quoteflow', admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Quote requests', 'quoteflow-free' ); ?></a>
+				<a class="nav-tab <?php echo 'manual' === self::input( INPUT_GET, 'qf_view' ) ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_view' => 'manual' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Manual offers', 'quoteflow-free' ); ?></a>
+			</nav>
+			<?php 'manual' === self::input( INPUT_GET, 'qf_view' ) ? self::manual_offers() : self::inbox(); ?>
 			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
 			<form method="post">
 				<?php wp_nonce_field( 'qf_create_offer' ); ?>
@@ -265,6 +273,65 @@ final class Pages {
 			<?php if ( $page < $pages ) : ?>
 				<a class="button" href="<?php echo esc_url( add_query_arg( $args + array( 'qf_page' => $page + 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Older requests', 'quoteflow-free' ); ?></a>
 			<?php endif; ?>
+		</p>
+		<?php
+	}
+
+	private static function manual_offers(): void {
+		$total = Offers::manual_count();
+		$pages = max( 1, (int) ceil( $total / 20 ) );
+		$page = min( $pages, max( 1, (int) self::input( INPUT_GET, 'qf_manual_page' ) ) );
+		$offers = Offers::manual_list( $page );
+		?>
+		<h2><?php esc_html_e( 'Manual offers', 'quoteflow-free' ); ?></h2>
+		<p><?php esc_html_e( 'Open a manual offer to recover its private link, check its email status or cancel it. Older offers may require the original link.', 'quoteflow-free' ); ?></p>
+		<p id="qf-manual-summary"><?php
+			/* translators: 1: Manual offers, 2: Current page, 3: Total pages. */
+			echo esc_html( sprintf( _n( '%1$d manual offer. Page %2$d of %3$d.', '%1$d manual offers. Page %2$d of %3$d.', $total, 'quoteflow-free' ), $total, $page, $pages ) );
+		?></p>
+		<?php if ( ! $offers ) : ?>
+			<p><?php esc_html_e( 'No manual offers yet.', 'quoteflow-free' ); ?></p>
+		<?php else : ?>
+			<table class="widefat striped">
+				<thead><tr>
+					<th scope="col"><?php esc_html_e( 'Offer', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Buyer', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Details', 'quoteflow-free' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Status and actions', 'quoteflow-free' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php foreach ( $offers as $offer ) : ?>
+					<tr>
+						<td>#<?php echo (int) $offer->id; ?></td>
+						<td><?php echo esc_html( $offer->email ); ?></td>
+						<td>
+							<?php foreach ( Offers::items( $offer ) as $item ) : ?>
+								<p><?php echo esc_html( $item['product_label'] ); ?> × <?php echo (int) $item['quantity']; ?></p>
+							<?php endforeach; ?>
+							<p><?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
+						</td>
+						<td>
+							<p><?php echo esc_html( self::offer_status( $offer ) ); ?></p>
+							<p><?php echo esc_html( self::email_status( $offer->email_state ) ); ?></p>
+							<?php self::order_link( (int) $offer->order_id ); ?>
+							<form method="post">
+								<?php wp_nonce_field( 'qf_view_manual_' . $offer->id ); ?>
+								<input type="hidden" name="qf_action" value="view_manual">
+								<input type="hidden" name="offer_id" value="<?php echo (int) $offer->id; ?>">
+								<button type="submit" class="button"><?php esc_html_e( 'View offer', 'quoteflow-free' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+		<p>
+			<?php foreach ( array( $page - 1 => __( 'Newer offers', 'quoteflow-free' ), $page + 1 => __( 'Older offers', 'quoteflow-free' ) ) as $target => $label ) : ?>
+				<?php if ( $target >= 1 && $target <= $pages ) : ?>
+					<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_view' => 'manual', 'qf_manual_page' => $target ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
+				<?php endif; ?>
+			<?php endforeach; ?>
 		</p>
 		<?php
 	}

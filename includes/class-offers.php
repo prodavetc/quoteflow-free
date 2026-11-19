@@ -183,13 +183,14 @@ final class Offers {
 			throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
 		}
 		$first  = $snapshot[0];
-		$token  = $token ?? bin2hex( random_bytes( 32 ) );
+		$conversion = wp_generate_uuid4();
+		$token = $token ?? ( $request_id > 0 ? bin2hex( random_bytes( 32 ) ) : self::manual_token( $conversion ) );
 		$result = $wpdb->insert(
 			self::table(),
 			array(
 				'request_id'    => $request_id > 0 ? $request_id : null,
 				'token_hash'    => hash( 'sha256', $token ),
-				'conversion_id' => wp_generate_uuid4(),
+				'conversion_id' => $conversion,
 				'state'         => 'offered',
 				'product_id'    => $first['product_id'],
 				'product_label' => $first['product_label'],
@@ -216,6 +217,36 @@ final class Offers {
 		}
 		$table = self::table();
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE token_hash = %s", hash( 'sha256', $token ) ) );
+	}
+
+	private static function manual_token( string $conversion ): string {
+		return hash_hmac( 'sha256', 'quoteflow-manual-offer|' . $conversion, wp_salt( 'auth' ) );
+	}
+
+	public static function recover_manual_token( int $offer_id ): string {
+		global $wpdb;
+		$table = self::table();
+		$offer = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND request_id IS NULL", $offer_id ) );
+		if ( ! $offer ) {
+			throw new RuntimeException( __( 'Manual offer not found.', 'quoteflow-free' ) );
+		}
+		$token = self::manual_token( $offer->conversion_id );
+		if ( ! hash_equals( $offer->token_hash, hash( 'sha256', $token ) ) ) {
+			throw new RuntimeException( __( 'This offer needs its original private link. It may predate link recovery or the store security keys may have changed.', 'quoteflow-free' ) );
+		}
+		return $token;
+	}
+
+	public static function manual_count(): int {
+		global $wpdb;
+		$table = self::table();
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE request_id IS NULL" );
+	}
+
+	public static function manual_list( int $page ): array {
+		global $wpdb;
+		$table = self::table();
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE request_id IS NULL ORDER BY id DESC LIMIT 20 OFFSET %d", ( max( 1, $page ) - 1 ) * 20 ) );
 	}
 
 	public static function expired( object $offer ): bool {

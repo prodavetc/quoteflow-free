@@ -2,7 +2,7 @@
 /**
  * Plugin Name: QuoteFlow Free
  * Description: Receive quote requests, prepare offers and convert acceptance into WooCommerce orders.
- * Version: 0.10.0-dev
+ * Version: 0.11.0-dev
  * Requires at least: 7.0
  * Requires PHP: 8.3
  * Requires Plugins: woocommerce
