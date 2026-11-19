@@ -80,8 +80,8 @@ for storage in ("enable", "disable"):
     payment_html = request(guest, payment_link)[2]
     payment = next(form["fields"] for form in Forms(payment_html).forms if "woocommerce-pay-nonce" in form["fields"])
     payment["payment_method"] = "bacs"
-    status, headers, _ = request(guest, payment_link, payment)
-    assert status in (302, 303) and "order-received" in headers["Location"], status
+    status, headers, payment_response = request(guest, payment_link, payment)
+    assert status in (302, 303) and "order-received" in headers["Location"], (status, re.findall(r'<(?:ul|div)[^>]*(?:woocommerce-error|notice-banner)[^>]*>.*?</(?:ul|div)>', payment_response, re.S))
     token = parse_qs(urlsplit(link).query)["qf_offer"][0]
     order_status = wp("eval", f"""$offer=Latse\\QuoteFlow\\Offers::find('{token}');
         $order=wc_get_order($offer->order_id);

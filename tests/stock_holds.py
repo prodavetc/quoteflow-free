@@ -21,11 +21,20 @@ for storage in ('enable','disable'):
     winning_order=int(wp('eval',f"echo Latse\\QuoteFlow\\Offers::find('{winning_token}')->order_id;"))
     held=wp('eval',f"$p=wc_get_product({data['product']});echo wc_get_held_stock_quantity($p).':'.wc_get_held_stock_quantity($p,{winning_order});")
     assert held=='1:0',held
-    wp('eval',f"add_filter('pre_wp_mail','__return_true');$o=wc_get_order({winning_order});$o->set_status('cancelled');$o->save();")
+    # Simulate a declined payment. Failed orders no longer hold stock in WooCommerce.
+    wp('eval',f"add_filter('pre_wp_mail','__return_true');$o=wc_get_order({winning_order});$o->set_status('failed');$o->save();")
     assert wp('eval',f"echo wc_get_held_stock_quantity(wc_get_product({data['product']}));")=='0'
+    winner_client=submissions[winner][0];winner_payment=results[winner][1]['Location']
+    stale_pay=next(f['fields'] for f in Forms(request(winner_client,winner_payment)[2]).forms if 'woocommerce-pay-nonce' in f['fields'])
     client,url,form,token=submissions[loser];response=request(client,url,form)
     assert response[0]==303,response[0]
-    payment=response[1]['Location'];pay=next(f['fields'] for f in Forms(request(client,payment)[2]).forms if 'woocommerce-pay-nonce' in f['fields'])
-    assert request(client,payment,pay|{'payment_method':'bacs'})[0] in (302,303)
+    losing_order=int(wp('eval',f"echo Latse\\QuoteFlow\\Offers::find('{token}')->order_id;"))
+    # A retry from an already-open page must not pay through another order's hold.
+    assert request(winner_client,winner_payment,stale_pay|{'payment_method':'bacs'})[0]==200
+    assert wp('eval',f"echo wc_get_order({winning_order})->get_status();")=='failed'
+    wp('eval',f"add_filter('pre_wp_mail','__return_true');$o=wc_get_order({losing_order});$o->set_status('cancelled');$o->save();")
+    assert wp('eval',f"echo wc_get_held_stock_quantity(wc_get_product({data['product']}));")=='0'
+    pay=next(f['fields'] for f in Forms(request(winner_client,winner_payment)[2]).forms if 'woocommerce-pay-nonce' in f['fields'])
+    assert request(winner_client,winner_payment,pay|{'payment_method':'bacs'})[0] in (302,303)
     assert wp('eval',f"echo wc_get_product({data['product']})->get_stock_quantity();")=='0'
-    print(f'{storage}: competing quotes, native reservation, own-order exclusion, cancellation release and payment passed',flush=True)
+    print(f'{storage}: competing quotes, native reservation, own-order exclusion, failed-payment guard, cancellation release and successful retry passed',flush=True)

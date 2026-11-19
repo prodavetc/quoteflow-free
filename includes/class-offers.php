@@ -507,6 +507,10 @@ final class Offers {
 			throw self::reconciliation_required();
 		}
 		self::verify_order( $offer, $orders[0] );
+		if ( $orders[0]->needs_payment() ) {
+			self::validate_items( $offer, $orders[0]->get_id() );
+			self::reserve_stock( $orders[0] );
+		}
 		return $orders[0];
 	}
 
@@ -592,8 +596,32 @@ final class Offers {
 	}
 
 	private static function reserve_stock( WC_Order $order ): void {
+		if ( ! $order->needs_payment() ) { return; }
+		global $wpdb;
+		if ( $order->has_status( 'failed' ) ) {
+			// Only pending orders participate in WooCommerce's held-stock accounting.
+			wc_release_stock_for_order( $order );
+			$order->set_status( 'pending' );
+			$order->save();
+		}
+		$needed = array();
+		foreach ( $order->get_items() as $item ) {
+			$product = $item->get_product();
+			if ( $product && $product->managing_stock() && ! $product->backorders_allowed() ) {
+				$id = $product->get_stock_managed_by_id();
+				$needed[ $id ] = ( $needed[ $id ] ?? 0 ) + (int) $item->get_quantity();
+			}
+		}
+		if ( ! $needed ) { return; }
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT product_id, stock_quantity FROM {$wpdb->wc_reserved_stock} WHERE order_id = %d AND expires > NOW()", $order->get_id() ) );
+		$held = array();
+		foreach ( $rows ?? array() as $row ) { $held[ (int) $row->product_id ] = (int) $row->stock_quantity; }
+		ksort( $held ); ksort( $needed );
+		// Keep an existing valid hold: a same-second native UPSERT can affect zero rows.
+		// Renewing every replay would also change the merchant's configured hold window.
+		if ( $held === $needed ) { return; }
 		try {
-			if ( $order->needs_payment() ) { wc_reserve_stock_for_order( $order ); }
+			wc_reserve_stock_for_order( $order );
 		} catch ( \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ) {
 			throw new RuntimeException( wp_specialchars_decode( $e->getMessage(), ENT_QUOTES ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Escaped at the UI boundary.
 		}

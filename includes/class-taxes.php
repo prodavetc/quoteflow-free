@@ -45,8 +45,8 @@ final class Taxes {
 
 	private static function split( string $gross, array $rates, bool $shipping = false ): array {
 		$taxes = array_map( array( self::class, 'decimal' ), WC_Tax::calc_tax( (float) $gross, $rates, true ) );
-		if ( $shipping ) {
-			// Shipping is one monetary charge; normalize each tax to WooCommerce currency precision.
+		if ( $shipping || 'yes' !== get_option( 'woocommerce_tax_round_at_subtotal' ) ) {
+			// Store monetary taxes for a single shipping charge or line-rounded product prices.
 			$taxes = array_map( static fn( $tax ) => self::decimal( wc_round_tax_total( $tax ) ), $taxes );
 		}
 		$effective = 'yes' === get_option( 'woocommerce_tax_round_at_subtotal' ) ? array_sum( $taxes ) : array_sum( array_map( 'wc_round_tax_total', $taxes ) );
