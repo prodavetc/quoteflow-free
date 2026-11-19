@@ -65,9 +65,53 @@ final class Offers {
 		int $request_id = 0,
 		?string $token = null,
 		string $shipping_total = '0',
+		string $shipping_country = '',
+		?string $conversion = null
+	): string {
+		return self::create_items( array( array( 'product_id' => $product_id, 'quantity' => $quantity, 'total' => $total ) ), $email, $request_id, $token, $shipping_total, $shipping_country, $conversion );
+	}
+
+	public static function create_manual(
+		string $submission,
+		int $product_id,
+		int $quantity,
+		string $total,
+		string $email,
+		string $shipping_total = '0',
 		string $shipping_country = ''
 	): string {
-		return self::create_items( array( array( 'product_id' => $product_id, 'quantity' => $quantity, 'total' => $total ) ), $email, $request_id, $token, $shipping_total, $shipping_country );
+		global $wpdb;
+		if ( ! wp_is_uuid( $submission ) ) {
+			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+		}
+		$line_total = self::decimal( self::amount( $total ) );
+		$shipping = self::decimal( self::amount( $shipping_total, true ) );
+		$table = self::table();
+		$lock = 'qf_manual_' . md5( $table . ':' . $submission );
+		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock ) ) ) {
+			throw new RuntimeException( __( 'This offer is being created. Wait and retry the same form.', 'quoteflow-free' ) );
+		}
+		try {
+			$saved = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE conversion_id = %s", $submission ) );
+			if ( $wpdb->last_error ) {
+				throw new RuntimeException( __( 'The offer could not be checked. Retry the same form.', 'quoteflow-free' ) );
+			}
+			if ( $saved ) {
+				$items = self::items( $saved );
+				if ( null !== $saved->request_id || count( $items ) !== 1
+					|| (int) $items[0]['product_id'] !== $product_id || (int) $items[0]['quantity'] !== $quantity
+					|| $items[0]['total'] !== $line_total || $saved->email !== $email
+					|| $saved->shipping_total !== $shipping
+					|| $saved->shipping_country !== ( Delivery::required( $saved ) ? $shipping_country : '' ) ) {
+					throw new RuntimeException( __( 'This form already created a different offer. Reload the page to create a new one.', 'quoteflow-free' ) );
+				}
+				return self::recover_manual_token( (int) $saved->id );
+			}
+			// The existing unique conversion index also makes the form claim durable.
+			return self::create( $product_id, $quantity, $total, $email, 0, null, $shipping_total, $shipping_country, $submission );
+		} finally {
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+		}
 	}
 
 	public static function snapshot( array $items ): array {
@@ -150,7 +194,8 @@ final class Offers {
 		int $request_id = 0,
 		?string $token = null,
 		string $shipping_total = '0',
-		string $shipping_country = ''
+		string $shipping_country = '',
+		?string $conversion = null
 	): string {
 		global $wpdb;
 		$snapshot = self::snapshot( $items );
@@ -183,7 +228,10 @@ final class Offers {
 			throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
 		}
 		$first  = $snapshot[0];
-		$conversion = wp_generate_uuid4();
+		$conversion = $conversion ?? wp_generate_uuid4();
+		if ( ! wp_is_uuid( $conversion ) ) {
+			throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+		}
 		$token = $token ?? ( $request_id > 0 ? bin2hex( random_bytes( 32 ) ) : self::manual_token( $conversion ) );
 		$result = $wpdb->insert(
 			self::table(),

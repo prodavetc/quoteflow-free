@@ -1,5 +1,6 @@
 """Reopen manual offers without changing their token, email or decision state in M0."""
 from html import unescape
+from concurrent.futures import ThreadPoolExecutor
 import json
 import re
 import subprocess
@@ -76,10 +77,32 @@ try:
         creation = form_where(listing, 'product_id', '')['fields'] | {
             'product_id': fixture['product'], 'quantity': '2', 'total': '29.00', 'email': 'manual-ui@example.test',
         }
-        created = request(admin, manual_url, creation)[2]
+        count_before_creation = int(wp('eval', 'echo Latse\\QuoteFlow\\Offers::manual_count();'))
+        # A double click claims one durable form identifier, including lost-response retries.
+        with ThreadPoolExecutor(2) as pool:
+            responses = list(pool.map(lambda _: request(admin, manual_url, creation), range(2)))
+        assert all(response[0] == 200 for response in responses)
+        created = responses[0][2]
         original_link = link(created)
+        assert link(responses[1][2]) == original_link
+        assert int(wp('eval', 'echo Latse\\QuoteFlow\\Offers::manual_count();')) == count_before_creation + 1
+        assert request(admin, manual_url, creation | {'_wpnonce': 'invalid'})[0] == 403
+        for malformed in ('invalid', ''):
+            assert 'Reload the form' in request(admin, manual_url, creation | {'creation_id': malformed})[2]
+        for invalid in ({'quantity': '2.5'}, {'quantity': '0'}, {'quantity': '101'},
+                        {'product_id': str(fixture['product']) + 'junk'}):
+            assert 'whole quantity' in request(admin, manual_url, creation | invalid)[2]
+        changed_uuid = wp('eval', 'echo wp_generate_uuid4();')
+        assert request(admin, manual_url, creation | {'creation_id': changed_uuid})[0] == 403
+        for change in ({'quantity': '3'}, {'total': '30.00'}, {'email': 'other-manual@example.test'},
+                       {'product_id': '999999999'}, {'shipping_total': '1.00'}):
+            rejected = request(admin, manual_url, creation | change)[2]
+            assert 'already created a different offer' in rejected and 'id="qf-offer-link"' not in rejected
+        assert link(request(admin, manual_url, creation | {'total': '29.0'})[2]) == original_link
+        assert link(request(admin, manual_url, creation)[2]) == original_link
         token = parse_qs(urlsplit(original_link).query)['qf_offer'][0]
         saved = row(token)
+        assert saved['conversion_id'] == creation['creation_id']
         total_before = wp('eval', 'echo Latse\\QuoteFlow\\Offers::manual_count();')
         clean_listing = request(admin, manual_url)[2]
         assert token not in clean_listing
@@ -116,6 +139,15 @@ try:
         public = request(browser(), original_link)[2]
         nonce = re.search(r'name="qf_nonce" value="([^"]+)"', public)
         assert nonce is None and 'The store canceled this offer' in public
+        # An old creation form recovers the closed record without reopening or sending it.
+        closed_snapshot = row(token)
+        assert link(request(admin, manual_url, creation)[2]) == original_link
+        assert row(token) == closed_snapshot
+        fresh_creation = form_where(request(admin, manual_url)[2], 'product_id', '')['fields'] | {
+            'product_id': fixture['product'], 'quantity': '2', 'total': '29.00', 'email': 'manual-ui@example.test',
+        }
+        assert fresh_creation['creation_id'] != creation['creation_id']
+        assert link(request(admin, manual_url, fresh_creation)[2]) != original_link
         # A default-generated manual link remains unchanged through acceptance and recovery.
         accepted_token = fixture['tokens'][-1]
         accepted_row = row(accepted_token)
@@ -148,6 +180,14 @@ try:
             try{{Latse\\QuoteFlow\\Offers::recover_manual_token({requested_id});echo 'failed';}}
             catch(RuntimeException $e){{echo 'passed';}}
         """) == 'passed'
-        print(f'{storage}: manual list, pagination, permissions, repeatable links, mail, cancellation, conversion, legacy tokens and salt changes passed', flush=True)
+        # Physical offers also bind the quoted shipping amount and destination to the form.
+        assert wp('eval', f"""
+            $p=new WC_Product_Simple();$p->set_name('Manual shipping retry');$p->set_regular_price('20');$p->save();
+            $uuid=wp_generate_uuid4();$token=Latse\\QuoteFlow\\Offers::create_manual($uuid,$p->get_id(),1,'15','manual-shipping@example.test','3','US');
+            if(Latse\\QuoteFlow\\Offers::create_manual($uuid,$p->get_id(),1,'15.0','manual-shipping@example.test','3.00','US')!==$token){{throw new Exception('Changed normalized token');}}
+            try{{Latse\\QuoteFlow\\Offers::create_manual($uuid,$p->get_id(),1,'15','manual-shipping@example.test','3','CA');echo 'failed';}}
+            catch(RuntimeException $e){{echo str_contains($e->getMessage(),'already created a different offer')?'passed':'failed';}}
+        """) == 'passed'
+        print(f'{storage}: concurrent creation, payload conflicts, normalized prices, manual list, pagination, permissions, repeatable links, mail, cancellation, conversion, legacy tokens and salt changes passed', flush=True)
 finally:
     subprocess.run([*COMPOSE, 'exec', '-T', 'wp', 'rm', '-f', mu], check=True)

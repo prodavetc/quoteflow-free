@@ -27,13 +27,17 @@ La pestaña **Manual offers** muestra las ofertas creadas sin solicitud, con el 
 
 Desde **View offer**, el comerciante recupera el enlace privado de las ofertas manuales nuevas, consulta su envío por correo y accede a la cancelación cuando corresponde. Reabrir la oferta conserva el enlace, los intentos de correo, el vencimiento y el estado. El envío y la cancelación siguen requiriendo sus acciones explícitas. Los pedidos creados tienen acceso a la pantalla nativa de WooCommerce cuando el operador tiene permiso para editarlos.
 
+El formulario de creación manual incluye un identificador único protegido por su nonce. Un doble clic o el reintento del mismo formulario con los mismos datos recupera la oferta existente, incluso después de cerrarla, sin alterar su estado, vencimiento ni intentos de correo. Los importes equivalentes según la precisión de la tienda, como `29.0` y `29.00`, se interpretan como el mismo valor. Cambiar producto, cantidad, comprador, importe o destino físico en un formulario usado exige abrir un formulario nuevo. Un formulario nuevo permite crear otra oferta intencionalmente.
+
+El identificador se registra en el mismo índice único que identifica la conversión, bajo un bloqueo por formulario. Si la respuesta se interrumpe después de guardar la oferta, el reintento recupera el registro. Los formularios abiertos antes de actualizar a esta versión requieren recargar la página. El administrador valida los identificadores y las cantidades enteras de 1 a 100 en el servidor.
+
 Desde la versión 0.11, el token de una oferta manual nueva se deriva de su identificador aleatorio de conversión y una clave privada de WordPress, con un dominio exclusivo para enlaces manuales. Se guarda su hash, y la recuperación comprueba que el token derivado coincida antes de mostrarlo. El token y el identificador usado para derivarlo quedan excluidos de la exportación de privacidad.
 
 Las ofertas anteriores con tokens aleatorios, y las creadas por código con un token explícito, pueden necesitar el enlace original: su hash no permite reconstruirlo. La pantalla informa de ese caso. Cambiar las claves de autenticación de WordPress impide recuperar los enlaces derivados con la clave anterior; los enlaces ya compartidos conservan la validación por su hash. Esta versión conserva los enlaces y datos existentes.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.11.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.12.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -149,7 +153,7 @@ La prueba de facturación cubre selección de opciones sin modificar la oferta, 
 
 La prueba de bandeja cubre todos los estados, búsquedas por correo e ID, combinación de filtros, caracteres literales como `%` y `_`, páginas fuera del rango, más de una página y el límite exacto de 20 resultados. Comprueba los enlaces nativos de pedidos y la recuperación de una oferta desde una lista filtrada, con HPOS y almacenamiento clásico.
 
-La prueba de ofertas manuales cubre la creación en el administrador, la lista paginada, los permisos y nonces, la recuperación repetida del mismo enlace sin efectos secundarios, correo capturado, cancelación y conversión a pedido. También comprueba enlaces aleatorios anteriores, cambios de clave y exclusión de ofertas ligadas a solicitudes, con HPOS y almacenamiento clásico.
+La prueba de ofertas manuales cubre creación simultánea, reintentos, conflictos de contenido, cantidades inválidas, importes normalizados, destino cotizado y creación en el administrador, la lista paginada, los permisos y nonces, la recuperación repetida del mismo enlace sin efectos secundarios, correo capturado, cancelación y conversión a pedido. También comprueba enlaces aleatorios anteriores, cambios de clave y exclusión de ofertas ligadas a solicitudes, con HPOS y almacenamiento clásico.
 
 Quedan pendientes impuestos, tarifas de envío en tiempo real, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 

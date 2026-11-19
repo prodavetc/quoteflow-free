@@ -60,9 +60,9 @@ final class Pages {
 					check_admin_referer( 'qf_view_manual_' . $offer_id );
 					self::$token = Offers::recover_manual_token( $offer_id );
 				} else {
-					check_admin_referer( 'qf_create_offer' );
 					$request_id = (int) self::input( INPUT_POST, 'request_id' );
 					if ( $request_id > 0 ) {
+						check_admin_referer( 'qf_create_offer' );
 						$totals = filter_input( INPUT_POST, 'totals', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
 						self::$token = Requests::respond(
 							$request_id,
@@ -71,13 +71,22 @@ final class Pages {
 							self::input( INPUT_POST, 'shipping_country' )
 						);
 					} else {
-						self::$token = Offers::create(
-							(int) self::input( INPUT_POST, 'product_id' ),
-							(int) self::input( INPUT_POST, 'quantity' ),
+						$creation = self::input( INPUT_POST, 'creation_id' );
+						if ( ! wp_is_uuid( $creation ) ) {
+							throw new RuntimeException( __( 'Reload the form before creating an offer.', 'quoteflow-free' ) );
+						}
+						check_admin_referer( 'qf_create_manual_' . $creation );
+						$product_id = filter_var( self::input( INPUT_POST, 'product_id' ), FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+						$quantity = filter_var( self::input( INPUT_POST, 'quantity' ), FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1, 'max_range' => 100 ) ) );
+						if ( false === $product_id || false === $quantity ) {
+							throw new RuntimeException( __( 'Enter a valid product ID and a whole quantity from 1 to 100.', 'quoteflow-free' ) );
+						}
+						self::$token = Offers::create_manual(
+							$creation,
+							$product_id,
+							$quantity,
 							self::input( INPUT_POST, 'total' ),
 							self::input( INPUT_POST, 'email' ),
-							0,
-							null,
 							self::input( INPUT_POST, 'shipping_total' ) ?: '0',
 							self::input( INPUT_POST, 'shipping_country' )
 						);
@@ -120,8 +129,10 @@ final class Pages {
 			</nav>
 			<?php 'manual' === self::input( INPUT_GET, 'qf_view' ) ? self::manual_offers() : self::inbox(); ?>
 			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
+			<?php $creation = wp_generate_uuid4(); ?>
 			<form method="post">
-				<?php wp_nonce_field( 'qf_create_offer' ); ?>
+				<?php wp_nonce_field( 'qf_create_manual_' . $creation ); ?>
+				<input type="hidden" name="creation_id" value="<?php echo esc_attr( $creation ); ?>">
 				<p><label><?php esc_html_e( 'Product or variation ID', 'quoteflow-free' ); ?> <input name="product_id" type="number" min="1" required></label></p>
 				<p><label><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?> <input name="quantity" type="number" min="1" max="100" value="1" required></label></p>
 				<p><label><?php esc_html_e( 'Negotiated total', 'quoteflow-free' ); ?> <input name="total" inputmode="decimal" required></label></p>
