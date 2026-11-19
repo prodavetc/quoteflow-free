@@ -24,7 +24,8 @@ final class Request_Form {
 
 	public static function prevent_cache(): void {
 		$post = get_queried_object();
-		if ( is_product() ) {
+		$queried = is_product() ? wc_get_product( get_queried_object_id() ) : false;
+		if ( is_product() && ! ( $queried && $queried->is_type( 'variable' ) ) ) {
 			try {
 				Offers::product( get_queried_object_id(), 1 );
 			} catch ( RuntimeException $e ) {
@@ -62,15 +63,28 @@ final class Request_Form {
 				if ( (float) (int) $line['quantity'] !== (float) $line['quantity'] ) {
 					return '<p>' . esc_html__( 'Quote requests require whole quantities.', 'quoteflow-free' ) . '</p>';
 				}
-				$items[] = array( 'product_id' => (int) $line['product_id'], 'quantity' => (int) $line['quantity'] );
+				$items[] = array(
+					'product_id' => (int) ( $line['variation_id'] ?: $line['product_id'] ),
+					'quantity' => (int) $line['quantity'],
+					'attributes' => $line['variation'] ?? array(),
+				);
 			}
 		} else {
 			$items[] = array( 'product_id' => (int) $attributes['product_id'], 'quantity' => 1 );
 		}
-		try {
-			$items = Offers::snapshot( $items );
-		} catch ( RuntimeException $e ) {
-			return $cart ? '<p>' . esc_html( $e->getMessage() ) . '</p>' : '';
+		$parent = $cart ? false : wc_get_product( (int) $attributes['product_id'] );
+		$variable = $parent && $parent->is_type( 'variable' );
+		if ( $variable ) {
+			if ( wc_tax_enabled() || 'publish' !== $parent->get_status() || ! $parent->is_purchasable() ) {
+				return '';
+			}
+			$items[0]['product_label'] = $parent->get_name();
+		} else {
+			try {
+				$items = Offers::snapshot( $items );
+			} catch ( RuntimeException $e ) {
+				return $cart ? '<p>' . esc_html( $e->getMessage() ) . '</p>' : '';
+			}
 		}
 		$submission = wp_generate_uuid4();
 		$prefix     = 'qf-' . $submission;
@@ -95,6 +109,13 @@ final class Request_Form {
 					?>
 					<p><?php echo esc_html( $item['product_label'] ); ?></p>
 					<input type="hidden" name="<?php echo esc_attr( $product_field ); ?>" value="<?php echo (int) $item['product_id']; ?>">
+					<?php if ( $variable ) : ?>
+						<?php Variations::fields( $parent, $prefix ); ?>
+					<?php else : ?>
+						<?php foreach ( $item['attributes'] ?? array() as $name => $value ) : ?>
+							<input type="hidden" name="<?php echo esc_attr( $cart ? "items[{$position}][attributes][{$name}]" : "attributes[{$name}]" ); ?>" value="<?php echo esc_attr( $value ); ?>">
+						<?php endforeach; ?>
+					<?php endif; ?>
 					<p><label for="<?php echo esc_attr( $prefix . '-quantity-' . $position ); ?>"><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?></label>
 						<input id="<?php echo esc_attr( $prefix . '-quantity-' . $position ); ?>" name="<?php echo esc_attr( $quantity_field ); ?>" type="number" min="1" max="<?php echo $product->is_sold_individually() ? 1 : 100; ?>" value="<?php echo (int) $item['quantity']; ?>" required></p>
 				<?php endforeach; ?>
@@ -153,7 +174,10 @@ final class Request_Form {
 
 	private static function posted_items( bool $cart ): array {
 		$raw = $cart ? filter_input( INPUT_POST, 'items', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) : array(
-			array( 'product_id' => self::input( 'product_id' ), 'quantity' => self::input( 'quantity' ) ),
+			array(
+				'product_id' => self::input( 'product_id' ), 'quantity' => self::input( 'quantity' ),
+				'attributes' => filter_input( INPUT_POST, 'attributes', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) ?? array(),
+			),
 		);
 		if ( ! is_array( $raw ) || ! $raw || count( $raw ) > 20 || ! array_is_list( $raw ) ) {
 			throw new RuntimeException( __( 'Include between 1 and 20 different products.', 'quoteflow-free' ) );
@@ -162,10 +186,14 @@ final class Request_Form {
 		foreach ( $raw as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item['product_id'], $item['quantity'] )
 				|| ! is_string( $item['product_id'] ) || ! is_string( $item['quantity'] )
-				|| ! ctype_digit( $item['product_id'] ) || ! ctype_digit( $item['quantity'] ) ) {
+				|| ! ctype_digit( $item['product_id'] ) || ! ctype_digit( $item['quantity'] )
+				|| ! is_array( $item['attributes'] ?? array() ) ) {
 				throw new RuntimeException( __( 'The request is invalid.', 'quoteflow-free' ) );
 			}
-			$items[] = array( 'product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity'] );
+			$items[] = array(
+				'product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity'],
+				'attributes' => $item['attributes'] ?? array(),
+			);
 		}
 		return $items;
 	}

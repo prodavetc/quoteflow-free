@@ -54,6 +54,11 @@ for storage in ("enable", "disable"):
     assert "Quoted shipping" in offer and "United States" in offer and "5.50" in offer and "45.30" in offer
     assert 'name="delivery[country]"' in offer and "Delivery and billing address" in offer
     nonce = re.search(r'name="qf_nonce" value="([^"]+)"', offer)[1]
+    rendered_form = form_where(offer, "qf_nonce", nonce)
+    assert all(key in rendered_form["fields"] for key in (
+        "delivery[first_name]", "delivery[last_name]", "delivery[address_1]", "delivery[city]", "delivery[postcode]"
+    ))
+    assert 'name="delivery[state]"' in offer
     decision = {"qf_nonce": nonce, "decision": "accept"}
     address = {
         "delivery[first_name]": "Ana", "delivery[last_name]": "Example",

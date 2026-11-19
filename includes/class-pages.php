@@ -96,7 +96,7 @@ final class Pages {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'QuoteFlow', 'quoteflow-free' ); ?></h1>
-			<p><?php esc_html_e( 'Use simple products in a store with taxes disabled. Quote shipping and a destination country for physical products. Offers expire in 24 hours.', 'quoteflow-free' ); ?></p>
+			<p><?php esc_html_e( 'Use simple products or selected variations in a store with taxes disabled. Quote shipping and a destination country for physical products. Offers expire in 24 hours.', 'quoteflow-free' ); ?></p>
 			<?php if ( $error ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
 			<?php endif; ?>
@@ -114,7 +114,7 @@ final class Pages {
 			<h2><?php esc_html_e( 'Create an offer without a request', 'quoteflow-free' ); ?></h2>
 			<form method="post">
 				<?php wp_nonce_field( 'qf_create_offer' ); ?>
-				<p><label><?php esc_html_e( 'Product ID', 'quoteflow-free' ); ?> <input name="product_id" type="number" min="1" required></label></p>
+				<p><label><?php esc_html_e( 'Product or variation ID', 'quoteflow-free' ); ?> <input name="product_id" type="number" min="1" required></label></p>
 				<p><label><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?> <input name="quantity" type="number" min="1" max="100" value="1" required></label></p>
 				<p><label><?php esc_html_e( 'Negotiated total', 'quoteflow-free' ); ?> <input name="total" inputmode="decimal" required></label></p>
 				<p><label><?php esc_html_e( 'Buyer billing email', 'quoteflow-free' ); ?> <input name="email" type="email" maxlength="254" required></label></p>

@@ -77,4 +77,4 @@ def reset_request_throttles():
     """Reset only known fictional contacts in the disposable store."""
     wp("eval", """global $wpdb; $wpdb->query("UPDATE {$wpdb->prefix}qf_requests
         SET rate_key = SHA2(CONCAT('previous-test-', id), 256)
-        WHERE email IN ('flow@example.test','multi@example.test','physical@example.test')");""")
+        WHERE email IN ('flow@example.test','multi@example.test','physical@example.test','variation@example.test','variantcart@example.test')");""")

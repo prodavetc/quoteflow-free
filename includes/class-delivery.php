@@ -117,7 +117,7 @@ final class Delivery {
 				$settings['return'] = true;
 				$settings['id']     = 'qf-delivery-' . $key;
 				$settings['custom_attributes']['maxlength'] = 'postcode' === $key ? 20 : 200;
-				echo wc_form_field( 'delivery[' . $key . ']', $settings, '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WooCommerce escapes its fields.
+				echo woocommerce_form_field( 'delivery[' . $key . ']', $settings, '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WooCommerce escapes its fields.
 				?>
 			<?php endforeach; ?>
 		</fieldset>

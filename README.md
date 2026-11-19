@@ -13,13 +13,23 @@ La bandeja permite recuperar el enlace de una oferta creada desde una solicitud.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.6.0-dev. Admite entre 1 y 20 productos simples físicos o virtuales diferentes por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.7.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
 Las solicitudes admiten cantidades enteras de 1 a 100 por producto, correo y una nota de hasta 2000 caracteres. El servidor valida el producto, protege el formulario con nonce y campo antispam, y limita cada dirección de conexión a cinco solicitudes por ventana de diez minutos. Guarda una huella temporal derivada de la dirección y la ventana. Si la tienda usa un proxy, revisar su configuración antes de la beta para evitar compartir el límite entre compradores.
 
 Las páginas de producto y las páginas con el shortcode envían encabezados de exclusión de caché. Configurar también la exclusión en cualquier caché externa que ignore estos encabezados.
+
+## Productos variables
+
+La ficha de un producto variable muestra selectores propios en el formulario de cotización. El comprador completa todas las opciones antes de enviarlo. En el carrito, la cotización usa las variantes y opciones que WooCommerce ya tiene seleccionadas.
+
+Las solicitudes, las ofertas y los pedidos guardan el identificador de la variante y sus atributos. Se admiten atributos personalizados y globales, y variantes configuradas para aceptar cualquier valor de un atributo. Cada combinación elegida aparece como una línea distinta.
+
+Para crear una oferta manual, se puede indicar el ID de una variante con opciones fijas. Las variantes con opciones abiertas requieren una solicitud del comprador con la selección completa. El servidor valida las combinaciones, la disponibilidad y el stock. Si varias variantes comparten stock del producto principal, se compara la suma de sus cantidades.
+
+Antes de aceptar y pagar se comprueban la variante y los atributos cotizados. Los pedidos recuperados tras una interrupción también deben conservar esos valores.
 
 ## Envío de productos físicos
 
@@ -68,6 +78,7 @@ python3 tests/multiline.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/mail_flow.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/decisions.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/delivery.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/variations.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -80,7 +91,11 @@ La prueba de decisiones cubre rechazo, cancelación, permisos, confirmación, bl
 
 La prueba de entrega cubre solicitud de un producto físico, país cotizado, dirección obligatoria, importe de envío, recuperación de la conversión, correo capturado y protección del pago ante cambios. También cubre un pedido mixto con envío gratuito.
 
-Quedan pendientes productos variables, impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
+La prueba de variantes cubre formularios de producto y carrito, opciones abiertas, atributos globales, stock compartido o por variante, recuperación del pedido y pago en HPOS y almacenamiento clásico. También comprueba una variante física con envío cotizado.
+
+Esta versión corrige la función que renderiza los campos de dirección. La prueba comprueba ahora que el formulario de dirección se renderice completo antes de probar su envío.
+
+Quedan pendientes impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 
 ## Desarrollo y producción
 

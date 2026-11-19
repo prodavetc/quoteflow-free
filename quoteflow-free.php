@@ -2,7 +2,7 @@
 /**
  * Plugin Name: QuoteFlow Free
  * Description: Receive quote requests, prepare offers and convert acceptance into WooCommerce orders.
- * Version: 0.6.0-dev
+ * Version: 0.7.0-dev
  * Requires at least: 7.0
  * Requires PHP: 8.3
  * Requires Plugins: woocommerce
@@ -15,6 +15,7 @@ namespace Latse\QuoteFlow;
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/class-offers.php';
+require_once __DIR__ . '/includes/class-variations.php';
 require_once __DIR__ . '/includes/class-delivery.php';
 require_once __DIR__ . '/includes/class-requests.php';
 require_once __DIR__ . '/includes/class-request-form.php';

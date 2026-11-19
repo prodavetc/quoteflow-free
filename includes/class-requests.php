@@ -44,10 +44,14 @@ final class Requests {
 		$snapshot = Offers::snapshot( $items );
 		$identity = array();
 		foreach ( $snapshot as $item ) {
-			$identity[] = array( $item['product_id'], $item['quantity'] );
+			$line = array( $item['product_id'], $item['quantity'] );
+			if ( ! empty( $item['attributes'] ) ) {
+				$line[] = $item['attributes'];
+			}
+			$identity[] = $line;
 		}
 		// Preserve the hash format of earlier single-product submissions.
-		$data    = count( $identity ) === 1 ? array( $identity[0][0], $identity[0][1], $email, $note ) : array( $identity, $email, $note );
+		$data    = count( $identity ) === 1 && count( $identity[0] ) === 2 ? array( $identity[0][0], $identity[0][1], $email, $note ) : array( $identity, $email, $note );
 		$payload = hash( 'sha256', wp_json_encode( $data ) );
 		$rate    = hash_hmac( 'sha256', $address . '|' . (int) floor( time() / 600 ), wp_salt( 'nonce' ) );
 		$lock    = 'qf_request_' . substr( $rate, 0, 40 );

@@ -77,18 +77,30 @@ final class Offers {
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item['product_id'], $item['quantity'] )
 				|| ! is_int( $item['product_id'] ) || ! is_int( $item['quantity'] )
-				|| isset( $seen[ $item['product_id'] ] ) ) {
+				|| ! is_array( $item['attributes'] ?? array() ) ) {
 				throw new RuntimeException( __( 'Each product must appear once with a whole quantity.', 'quoteflow-free' ) );
 			}
-			$product    = self::product( $item['product_id'], $item['quantity'] );
+			$selection = Variations::select( $item['product_id'], $item['attributes'] ?? array() );
+			$product   = self::product( $selection['product_id'], $item['quantity'] );
+			$identity  = $product->get_id() . ':' . wp_json_encode( $selection['attributes'] );
+			if ( isset( $seen[ $identity ] ) ) {
+				throw new RuntimeException( __( 'Each product and option combination must appear once.', 'quoteflow-free' ) );
+			}
+			$label = $product->get_name();
+			if ( $selection['parent_id'] ) {
+				$label = $product->get_title() . ' - ' . wp_strip_all_tags( wc_get_formatted_variation( $selection['attributes'], true, true ) );
+			}
 			$snapshot[] = array(
 				'product_id'     => $product->get_id(),
-				'product_label'  => $product->get_name(),
+				'parent_id'      => $selection['parent_id'],
+				'attributes'     => $selection['attributes'],
+				'product_label'  => $label,
 				'quantity'       => $item['quantity'],
 				'needs_shipping' => $product->needs_shipping(),
 			);
-			$seen[ $item['product_id'] ] = true;
+			$seen[ $identity ] = true;
 		}
+		self::validate_stock( $snapshot );
 		return $snapshot;
 	}
 
@@ -211,11 +223,17 @@ final class Offers {
 	public static function product( int $product_id, int $quantity ): \WC_Product {
 		$product = wc_get_product( $product_id );
 		if ( $quantity < 1 || $quantity > 100 || wc_tax_enabled() || ! $product
-			|| ! $product->is_type( 'simple' )
+			|| ! $product->is_type( array( 'simple', 'variation' ) )
 			|| 'publish' !== $product->get_status() || ! $product->is_purchasable()
 			|| ( $product->is_sold_individually() && $quantity > 1 )
 			|| ! $product->is_in_stock() || ! $product->has_enough_stock( $quantity ) ) {
-			throw new RuntimeException( __( 'Use an available simple product in a store with taxes disabled.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Use an available simple product or variation in a store with taxes disabled.', 'quoteflow-free' ) );
+		}
+		if ( $product->is_type( 'variation' ) ) {
+			$parent = wc_get_product( $product->get_parent_id() );
+			if ( ! $parent || 'publish' !== $parent->get_status() || ! $product->variation_is_visible() ) {
+				throw new RuntimeException( __( 'Choose an available product variation.', 'quoteflow-free' ) );
+			}
 		}
 		return $product;
 	}
@@ -352,7 +370,10 @@ final class Offers {
 			$order->add_product(
 				$product,
 				(int) $item['quantity'],
-				array( 'name' => $item['product_label'], 'subtotal' => $item['total'], 'total' => $item['total'] )
+				array(
+					'name' => $item['product_label'], 'subtotal' => $item['total'], 'total' => $item['total'],
+					'variation' => $item['attributes'] ?? array(),
+				)
 			);
 		}
 		$order->update_meta_data( '_qf_conversion_id', $offer->conversion_id );
@@ -401,10 +422,17 @@ final class Offers {
 		}
 		Delivery::verify_order( $offer, $order );
 		foreach ( $expected as $position => $line ) {
-			if ( (int) $line['product_id'] !== $items[ $position ]->get_product_id()
+			$variation_id = empty( $line['parent_id'] ) ? 0 : (int) $line['product_id'];
+			if ( (int) ( ( $line['parent_id'] ?? 0 ) ?: $line['product_id'] ) !== $items[ $position ]->get_product_id()
+				|| $variation_id !== $items[ $position ]->get_variation_id()
 				|| (int) $line['quantity'] !== $items[ $position ]->get_quantity()
 				|| wc_format_decimal( $line['total'], 6 ) !== wc_format_decimal( $items[ $position ]->get_total(), 6 ) ) {
 				throw self::reconciliation_required();
+			}
+			foreach ( $line['attributes'] ?? array() as $name => $value ) {
+				if ( $items[ $position ]->get_meta( str_replace( 'attribute_', '', $name ), true ) !== $value ) {
+					throw self::reconciliation_required();
+				}
 			}
 		}
 	}
@@ -432,8 +460,29 @@ final class Offers {
 	private static function validate_items( object $offer ): void {
 		foreach ( self::items( $offer ) as $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
+			$selection = Variations::select( $product->get_id(), $item['attributes'] ?? array() );
+			if ( $selection['parent_id'] !== (int) ( $item['parent_id'] ?? 0 )
+				|| $selection['attributes'] !== ( $item['attributes'] ?? array() ) ) {
+				throw new RuntimeException( __( 'Product options changed. Ask the store for a new offer.', 'quoteflow-free' ) );
+			}
 			if ( $product->needs_shipping() !== (bool) ( $item['needs_shipping'] ?? false ) ) {
 				throw new RuntimeException( __( 'Product delivery requirements changed. Ask the store for a new offer.', 'quoteflow-free' ) );
+			}
+		}
+		self::validate_stock( self::items( $offer ) );
+	}
+
+	private static function validate_stock( array $items ): void {
+		$quantities = array();
+		foreach ( $items as $item ) {
+			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
+			$stock_id = $product->get_stock_managed_by_id();
+			$quantities[ $stock_id ] = ( $quantities[ $stock_id ] ?? 0 ) + (int) $item['quantity'];
+		}
+		foreach ( $quantities as $stock_id => $quantity ) {
+			$stock = wc_get_product( $stock_id );
+			if ( ! $stock || ! $stock->has_enough_stock( $quantity ) ) {
+				throw new RuntimeException( __( 'The combined quantity exceeds the available product stock.', 'quoteflow-free' ) );
 			}
 		}
 	}
