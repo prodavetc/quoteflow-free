@@ -478,6 +478,7 @@ final class Offers {
 		$order->update_taxes();
 		$order->calculate_totals( false );
 		self::verify_order( $offer, $order );
+		self::reserve_stock( $order );
 		return $order;
 	}
 
@@ -551,13 +552,14 @@ final class Offers {
 				throw self::reconciliation_required();
 			}
 			self::verify_order( $offer, $order );
-			self::validate_items( $offer );
+			self::validate_items( $offer, $order->get_id() );
+			self::reserve_stock( $order );
 		} catch ( RuntimeException $e ) {
 			wc_add_notice( esc_html( $e->getMessage() ), 'error' );
 		}
 	}
 
-	private static function validate_items( object $offer ): void {
+	private static function validate_items( object $offer, int $exclude_order = 0 ): void {
 		Taxes::validate( $offer );
 		foreach ( self::items( $offer ) as $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
@@ -570,10 +572,10 @@ final class Offers {
 				throw new RuntimeException( __( 'Product delivery requirements changed. Ask the store for a new offer.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
 		}
-		self::validate_stock( self::items( $offer ) );
+		self::validate_stock( self::items( $offer ), $exclude_order );
 	}
 
-	private static function validate_stock( array $items ): void {
+	private static function validate_stock( array $items, int $exclude_order = 0 ): void {
 		$quantities = array();
 		foreach ( $items as $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
@@ -582,9 +584,18 @@ final class Offers {
 		}
 		foreach ( $quantities as $stock_id => $quantity ) {
 			$stock = wc_get_product( $stock_id );
-			if ( ! $stock || ! $stock->has_enough_stock( $quantity ) ) {
+			if ( ! $stock || ! $stock->has_enough_stock( $quantity )
+				|| ( $stock->managing_stock() && ! $stock->backorders_allowed() && (float) $stock->get_stock_quantity() - wc_get_held_stock_quantity( $stock, $exclude_order ) < $quantity ) ) {
 				throw new RuntimeException( __( 'The combined quantity exceeds the available product stock.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 			}
+		}
+	}
+
+	private static function reserve_stock( WC_Order $order ): void {
+		try {
+			if ( $order->needs_payment() ) { wc_reserve_stock_for_order( $order ); }
+		} catch ( \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ) {
+			throw new RuntimeException( wp_specialchars_decode( $e->getMessage(), ENT_QUOTES ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Escaped at the UI boundary.
 		}
 	}
 

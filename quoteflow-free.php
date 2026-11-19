@@ -6,6 +6,8 @@
  * Requires at least: 7.0
  * Requires PHP: 8.3
  * Requires Plugins: woocommerce
+ * WC requires at least: 11.3
+ * WC tested up to: 11.3
  * License: GPL-2.0-or-later
  * Author: Latse
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html

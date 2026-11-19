@@ -137,7 +137,7 @@ msgstr "Dirección de entrega y facturación"
 msgid "Billing address"
 msgstr "Dirección de facturación"
 
-#: includes/class-delivery.php:210 includes/class-privacy.php:92
+#: includes/class-delivery.php:210 includes/class-privacy.php:93
 msgid "Quoted shipping total"
 msgstr "Total de envío cotizado"
 
@@ -208,7 +208,7 @@ msgstr ""
 "El servicio de correo no aceptó el mensaje. Revisá la configuración de "
 "correo de la tienda y reintentá."
 
-#: includes/class-offer-email.php:86 includes/class-pages.php:452
+#: includes/class-offer-email.php:86 includes/class-pages.php:457
 msgid ""
 "The negotiated total includes applicable taxes. The tax breakdown is "
 "calculated from your address when you accept."
@@ -224,27 +224,27 @@ msgstr ""
 "Revisá tu cotización. Abrí el enlace privado para aceptarla y continuar al "
 "pago."
 
-#: includes/class-offer-email.php:90 includes/class-pages.php:455
+#: includes/class-offer-email.php:90 includes/class-pages.php:460
 msgid "Product"
 msgstr "Producto"
 
 #: includes/class-offer-email.php:91 includes/class-pages.php:137
-#: includes/class-pages.php:456 includes/class-request-form.php:119
+#: includes/class-pages.php:461 includes/class-request-form.php:119
 msgid "Quantity"
 msgstr "Cantidad"
 
 #: includes/class-offer-email.php:92 includes/class-pages.php:264
-#: includes/class-pages.php:457
+#: includes/class-pages.php:462
 msgid "Line total"
 msgstr "Total de la línea"
 
 #: includes/class-offer-email.php:105 includes/class-offers.php:460
-#: includes/class-pages.php:470
+#: includes/class-pages.php:475
 msgid "Quoted shipping"
 msgstr "Envío cotizado"
 
-#: includes/class-offer-email.php:109 includes/class-pages.php:474
-#: includes/class-privacy.php:90
+#: includes/class-offer-email.php:109 includes/class-pages.php:479
+#: includes/class-privacy.php:91
 msgid "Total"
 msgstr "Total"
 
@@ -397,21 +397,21 @@ msgstr ""
 msgid "The store currency changed. Ask for a new offer."
 msgstr "Cambió la moneda de la tienda. Solicitá una nueva oferta."
 
-#: includes/class-offers.php:567
+#: includes/class-offers.php:569
 msgid "Product options changed. Ask the store for a new offer."
 msgstr ""
 "Cambiaron las opciones del producto. Solicitá una nueva oferta a la tienda."
 
-#: includes/class-offers.php:570
+#: includes/class-offers.php:572
 msgid "Product delivery requirements changed. Ask the store for a new offer."
 msgstr ""
 "Cambiaron los requisitos de entrega del producto. Solicitá una nueva oferta."
 
-#: includes/class-offers.php:586
+#: includes/class-offers.php:589
 msgid "The combined quantity exceeds the available product stock."
 msgstr "La cantidad combinada supera el stock disponible del producto."
 
-#: includes/class-offers.php:592 includes/class-pages.php:432
+#: includes/class-offers.php:603 includes/class-pages.php:437
 msgid "The order needs review. Contact the store before trying to pay."
 msgstr ""
 "El pedido requiere revisión. Contactá con la tienda antes de intentar pagar."
@@ -674,31 +674,31 @@ msgstr "Completá la dirección de facturación."
 msgid "This order no longer needs payment."
 msgstr "Este pedido ya no necesita un pago."
 
-#: includes/class-pages.php:437 includes/class-request-form.php:139
+#: includes/class-pages.php:442 includes/class-request-form.php:139
 msgid "Method not allowed."
 msgstr "Método no permitido."
 
-#: includes/class-pages.php:446 includes/class-pages.php:451
+#: includes/class-pages.php:451 includes/class-pages.php:456
 msgid "Your offer"
 msgstr "Tu oferta"
 
-#: includes/class-pages.php:477
+#: includes/class-pages.php:482
 msgid "You declined this offer. Contact the store if you need a new quote."
 msgstr ""
 "Rechazaste esta oferta. Contactá con la tienda si necesitás otra cotización."
 
-#: includes/class-pages.php:478
+#: includes/class-pages.php:483
 msgid ""
 "The store canceled this offer. Contact the store if you need a new quote."
 msgstr ""
 "La tienda canceló esta oferta. Contactá con ella si necesitás otra "
 "cotización."
 
-#: includes/class-pages.php:484
+#: includes/class-pages.php:489
 msgid "Accept and continue to payment"
 msgstr "Aceptar y continuar al pago"
 
-#: includes/class-pages.php:486
+#: includes/class-pages.php:491
 msgid "Decline offer"
 msgstr "Rechazar oferta"
 
@@ -706,110 +706,110 @@ msgstr "Rechazar oferta"
 msgid "QuoteFlow requests and offers"
 msgstr "Solicitudes y ofertas de QuoteFlow"
 
-#: includes/class-privacy.php:67
+#: includes/class-privacy.php:68
 msgid ""
 "QuoteFlow privacy cleanup is pending. It will retry through WordPress cron."
 msgstr ""
 "La limpieza de privacidad de QuoteFlow está pendiente. Se reintentará "
 "mediante el cron de WordPress."
 
-#: includes/class-privacy.php:76 includes/class-privacy.php:134
+#: includes/class-privacy.php:77 includes/class-privacy.php:135
 msgid "Enter a valid email and page."
 msgstr "Ingresá un correo y una página válidos."
 
-#: includes/class-privacy.php:81
+#: includes/class-privacy.php:82
 msgid "Record ID"
 msgstr "ID del registro"
 
-#: includes/class-privacy.php:82
+#: includes/class-privacy.php:83
 msgid "Email"
 msgstr "Correo electrónico"
 
-#: includes/class-privacy.php:83
+#: includes/class-privacy.php:84
 msgid "Buyer note"
 msgstr "Nota del comprador"
 
-#: includes/class-privacy.php:84
+#: includes/class-privacy.php:85
 msgid "Requested at (UTC)"
 msgstr "Fecha de solicitud (UTC)"
 
-#: includes/class-privacy.php:85
+#: includes/class-privacy.php:86
 msgid "First product"
 msgstr "Primer producto"
 
-#: includes/class-privacy.php:86
+#: includes/class-privacy.php:87
 msgid "First product quantity"
 msgstr "Cantidad del primer producto"
 
-#: includes/class-privacy.php:87
+#: includes/class-privacy.php:88
 msgid "Quoted or requested items (JSON)"
 msgstr "Productos cotizados o solicitados (JSON)"
 
-#: includes/class-privacy.php:88
+#: includes/class-privacy.php:89
 msgid "Related request ID"
 msgstr "ID de solicitud relacionada"
 
-#: includes/class-privacy.php:89
+#: includes/class-privacy.php:90
 msgid "Offer state"
 msgstr "Estado de la oferta"
 
-#: includes/class-privacy.php:91
+#: includes/class-privacy.php:92
 msgid "Currency"
 msgstr "Moneda"
 
-#: includes/class-privacy.php:93
+#: includes/class-privacy.php:94
 msgid "Quoted shipping country"
 msgstr "País de entrega cotizado"
 
-#: includes/class-privacy.php:94
+#: includes/class-privacy.php:95
 msgid "Accepted address (JSON)"
 msgstr "Dirección aceptada (JSON)"
 
-#: includes/class-privacy.php:95
+#: includes/class-privacy.php:96
 msgid "Accepted billing address (JSON)"
 msgstr "Dirección de facturación aceptada (JSON)"
 
-#: includes/class-privacy.php:96
+#: includes/class-privacy.php:97
 msgid "Expires at (UTC)"
 msgstr "Fecha de vencimiento (UTC)"
 
-#: includes/class-privacy.php:97
+#: includes/class-privacy.php:98
 msgid "Accepted at (UTC)"
 msgstr "Fecha de aceptación (UTC)"
 
-#: includes/class-privacy.php:98
+#: includes/class-privacy.php:99
 msgid "Closed at (UTC)"
 msgstr "Fecha de cierre (UTC)"
 
-#: includes/class-privacy.php:99
+#: includes/class-privacy.php:100
 msgid "Offer email state"
 msgstr "Estado del correo de la oferta"
 
-#: includes/class-privacy.php:100
+#: includes/class-privacy.php:101
 msgid "Offer email attempts"
 msgstr "Intentos de correo de la oferta"
 
-#: includes/class-privacy.php:101
+#: includes/class-privacy.php:102
 msgid "Email attempted at (UTC)"
 msgstr "Fecha del intento de correo (UTC)"
 
-#: includes/class-privacy.php:102
+#: includes/class-privacy.php:103
 msgid "Email accepted by transport at (UTC)"
 msgstr "Fecha de aceptación del correo por el servicio (UTC)"
 
-#: includes/class-privacy.php:103
+#: includes/class-privacy.php:104
 msgid "WooCommerce order ID"
 msgstr "ID del pedido de WooCommerce"
 
-#: includes/class-privacy.php:119
+#: includes/class-privacy.php:120
 msgid "QuoteFlow requests"
 msgstr "Solicitudes de QuoteFlow"
 
-#: includes/class-privacy.php:119
+#: includes/class-privacy.php:120
 msgid "QuoteFlow offers"
 msgstr "Ofertas de QuoteFlow"
 
-#: includes/class-privacy.php:180
+#: includes/class-privacy.php:181
 msgid ""
 "QuoteFlow retained active offers, records linked to orders or conversions, "
 "and records requiring review (including an unknown email result). Close "
@@ -822,7 +822,7 @@ msgstr ""
 "registros de correo antes de reintentar el borrado. WooCommerce gestiona los"
 " datos del pedido por separado."
 
-#: includes/class-privacy.php:258
+#: includes/class-privacy.php:259
 msgid ""
 "QuoteFlow privacy processing could not finish. A record may be in use. Wait "
 "for current operations to finish and retry; completed deletions are "
@@ -935,11 +935,11 @@ msgstr ""
 "Cambió la configuración de impuestos del producto. Solicitá una nueva "
 "oferta."
 
-#: includes/class-taxes.php:89
+#: includes/class-taxes.php:95
 msgid "The accepted tax calculation needs review."
 msgstr "El cálculo de impuestos aceptado requiere revisión."
 
-#: includes/class-taxes.php:111
+#: includes/class-taxes.php:117
 msgid ""
 "The accepted price or tax calculation changed. Contact the store before "
 "paying."
@@ -947,15 +947,15 @@ msgstr ""
 "Cambió el precio o el cálculo de impuestos aceptado. Contactá con la tienda "
 "antes de pagar."
 
-#: includes/class-taxes.php:119
+#: includes/class-taxes.php:125
 msgid "The accepted shipping taxes changed."
 msgstr "Cambiaron los impuestos de envío aceptados."
 
-#: includes/class-taxes.php:128
+#: includes/class-taxes.php:134
 msgid "Duplicate tax lines need review."
 msgstr "Las líneas de impuestos duplicadas requieren revisión."
 
-#: includes/class-taxes.php:137
+#: includes/class-taxes.php:143
 msgid "The accepted order totals changed. Contact the store before paying."
 msgstr ""
 "Cambiaron los totales aceptados del pedido. Contactá con la tienda antes de "
@@ -985,6 +985,14 @@ msgstr "Esta combinación de opciones no está disponible."
 msgid "Choose an option"
 msgstr "Elegí una opción"
 
-#: includes/class-taxes.php:105
+#: includes/class-taxes.php:111
 msgid "The order tax mode changed."
 msgstr "Cambió el modo de impuestos del pedido."
+
+#: includes/class-taxes.php:54
+msgid ""
+"The quoted amount is too small for the configured tax rounding. Ask for a "
+"new offer."
+msgstr ""
+"El importe cotizado es demasiado bajo para el redondeo de impuestos "
+"configurado. Solicitá una nueva oferta."

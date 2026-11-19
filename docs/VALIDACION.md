@@ -6,9 +6,10 @@ Estado: candidata de staging. No equivale a aprobación para producción ni apro
 
 - Batería completa: solicitudes, carrito multilínea, variantes, stock, aceptación concurrente, recuperación del pedido, precios, envío, direcciones separadas, correo, rechazo/cancelación, bandejas y privacidad.
 - Almacenes de pedidos: HPOS y clásico, WordPress 7.1.4, WooCommerce 11.3.0, PHP 8.3.36, MariaDB 10.11.19.
-- Fiscal: totales inclusivos fijos; impuestos estándar y compuestos; productos no gravados; clases reducida y cero; clase heredada de envío; ubicación por facturación; redondeo por línea y subtotal; catálogo inclusivo/exclusivo; cambios de configuración; recuperación y rechazo de alteraciones de impuestos.
+- Fiscal: totales inclusivos fijos; impuestos estándar y compuestos; productos no gravados; clases reducida y cero; clase heredada de envío; ubicación por facturación; redondeo por línea y subtotal; caso de medio centavo en envío; catálogo inclusivo/exclusivo; cambios de configuración; recuperación y rechazo de alteraciones de impuestos.
 - Formulario público: producto virtual gravado, dirección de facturación obligatoria y pago nativo mediante transferencia local.
 - Privacidad: pedidos terminales anonimizados se conservan en WooCommerce y se elimina el par solicitud/oferta; pedidos activos protegidos. Bloqueo en curso: reintento con solo ID en cron y limpieza posterior comprobados.
+- Stock: dos ofertas diferentes compiten por la última unidad; solo una obtiene la reserva nativa. Se comprobaron exclusión de la reserva propia, liberación por cancelación y pago posterior de la otra oferta con HPOS y clásico.
 - Correo: capturador de WordPress y además protocolo SMTP real en loopback; rechazo del destinatario, reintento aceptado y contenido verificado. No se envió correo a destinatarios externos.
 - Actualización aislada desde el ZIP 0.12.0-dev sobre WordPress 7.0: columnas anteriores, enlaces privados, oferta de solicitud, pedido físico, direcciones y validación del pago conservados.
 - Idioma: carga del catálogo español desde WordPress y catálogo completo de las cadenas propias del plugin.

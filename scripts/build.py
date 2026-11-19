@@ -16,8 +16,8 @@ for folder in ('includes', 'assets', 'languages'):
 args.output.mkdir(parents=True, exist_ok=True)
 path = args.output / f'quoteflow-free-{version}.zip'
 with ZipFile(path, 'w', ZIP_STORED) as z:
-    for p in sorted(files):
-        info = ZipInfo('quoteflow-free/' + str(p.relative_to(root)), (1980,1,1,0,0,0))
+    for p in sorted(files, key=lambda f: f.relative_to(root).as_posix()):
+        info = ZipInfo('quoteflow-free/' + p.relative_to(root).as_posix(), (1980,1,1,0,0,0))
         info.compress_type = ZIP_STORED
         info.create_system = 3
         info.external_attr = 0o100644 << 16

@@ -423,6 +423,11 @@ final class Pages {
 					if ( ! $order->needs_payment() ) {
 						wp_die( esc_html__( 'This order no longer needs payment.', 'quoteflow-free' ), '', array( 'response' => 200 ) );
 					}
+					// Native checkout context keeps this order's own hold out of cart stock checks.
+					if ( WC()->session ) {
+						WC()->session->set( 'order_awaiting_payment', $order->get_id() );
+						if ( method_exists( WC()->session, 'set_customer_session_cookie' ) ) { WC()->session->set_customer_session_cookie( true ); }
+					}
 					wp_safe_redirect( $order->get_checkout_payment_url(), 303 );
 					exit;
 				}

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-19T19:06:41+00:00\n"
+"POT-Creation-Date: 2026-11-19T19:34:48+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: quoteflow-free\n"
@@ -122,7 +122,7 @@ msgid "Billing address"
 msgstr ""
 
 #: includes/class-delivery.php:210
-#: includes/class-privacy.php:92
+#: includes/class-privacy.php:93
 msgid "Quoted shipping total"
 msgstr ""
 
@@ -181,7 +181,7 @@ msgid "The mail service did not accept the email. Check the store mail configura
 msgstr ""
 
 #: includes/class-offer-email.php:86
-#: includes/class-pages.php:452
+#: includes/class-pages.php:457
 msgid "The negotiated total includes applicable taxes. The tax breakdown is calculated from your address when you accept."
 msgstr ""
 
@@ -190,32 +190,32 @@ msgid "Review your quote below. Open the private link to accept it and continue 
 msgstr ""
 
 #: includes/class-offer-email.php:90
-#: includes/class-pages.php:455
+#: includes/class-pages.php:460
 msgid "Product"
 msgstr ""
 
 #: includes/class-offer-email.php:91
 #: includes/class-pages.php:137
-#: includes/class-pages.php:456
+#: includes/class-pages.php:461
 #: includes/class-request-form.php:119
 msgid "Quantity"
 msgstr ""
 
 #: includes/class-offer-email.php:92
 #: includes/class-pages.php:264
-#: includes/class-pages.php:457
+#: includes/class-pages.php:462
 msgid "Line total"
 msgstr ""
 
 #: includes/class-offer-email.php:105
 #: includes/class-offers.php:460
-#: includes/class-pages.php:470
+#: includes/class-pages.php:475
 msgid "Quoted shipping"
 msgstr ""
 
 #: includes/class-offer-email.php:109
-#: includes/class-pages.php:474
-#: includes/class-privacy.php:90
+#: includes/class-pages.php:479
+#: includes/class-privacy.php:91
 msgid "Total"
 msgstr ""
 
@@ -350,20 +350,20 @@ msgstr ""
 msgid "The store currency changed. Ask for a new offer."
 msgstr ""
 
-#: includes/class-offers.php:567
+#: includes/class-offers.php:569
 msgid "Product options changed. Ask the store for a new offer."
 msgstr ""
 
-#: includes/class-offers.php:570
+#: includes/class-offers.php:572
 msgid "Product delivery requirements changed. Ask the store for a new offer."
 msgstr ""
 
-#: includes/class-offers.php:586
+#: includes/class-offers.php:589
 msgid "The combined quantity exceeds the available product stock."
 msgstr ""
 
-#: includes/class-offers.php:592
-#: includes/class-pages.php:432
+#: includes/class-offers.php:603
+#: includes/class-pages.php:437
 msgid "The order needs review. Contact the store before trying to pay."
 msgstr ""
 
@@ -621,29 +621,29 @@ msgstr ""
 msgid "This order no longer needs payment."
 msgstr ""
 
-#: includes/class-pages.php:437
+#: includes/class-pages.php:442
 #: includes/class-request-form.php:139
 msgid "Method not allowed."
 msgstr ""
 
-#: includes/class-pages.php:446
 #: includes/class-pages.php:451
+#: includes/class-pages.php:456
 msgid "Your offer"
 msgstr ""
 
-#: includes/class-pages.php:477
+#: includes/class-pages.php:482
 msgid "You declined this offer. Contact the store if you need a new quote."
 msgstr ""
 
-#: includes/class-pages.php:478
+#: includes/class-pages.php:483
 msgid "The store canceled this offer. Contact the store if you need a new quote."
 msgstr ""
 
-#: includes/class-pages.php:484
+#: includes/class-pages.php:489
 msgid "Accept and continue to payment"
 msgstr ""
 
-#: includes/class-pages.php:486
+#: includes/class-pages.php:491
 msgid "Decline offer"
 msgstr ""
 
@@ -652,112 +652,112 @@ msgstr ""
 msgid "QuoteFlow requests and offers"
 msgstr ""
 
-#: includes/class-privacy.php:67
+#: includes/class-privacy.php:68
 msgid "QuoteFlow privacy cleanup is pending. It will retry through WordPress cron."
 msgstr ""
 
-#: includes/class-privacy.php:76
-#: includes/class-privacy.php:134
+#: includes/class-privacy.php:77
+#: includes/class-privacy.php:135
 msgid "Enter a valid email and page."
 msgstr ""
 
-#: includes/class-privacy.php:81
+#: includes/class-privacy.php:82
 msgid "Record ID"
 msgstr ""
 
-#: includes/class-privacy.php:82
+#: includes/class-privacy.php:83
 msgid "Email"
 msgstr ""
 
-#: includes/class-privacy.php:83
+#: includes/class-privacy.php:84
 msgid "Buyer note"
 msgstr ""
 
-#: includes/class-privacy.php:84
+#: includes/class-privacy.php:85
 msgid "Requested at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:85
+#: includes/class-privacy.php:86
 msgid "First product"
 msgstr ""
 
-#: includes/class-privacy.php:86
+#: includes/class-privacy.php:87
 msgid "First product quantity"
 msgstr ""
 
-#: includes/class-privacy.php:87
+#: includes/class-privacy.php:88
 msgid "Quoted or requested items (JSON)"
 msgstr ""
 
-#: includes/class-privacy.php:88
+#: includes/class-privacy.php:89
 msgid "Related request ID"
 msgstr ""
 
-#: includes/class-privacy.php:89
+#: includes/class-privacy.php:90
 msgid "Offer state"
 msgstr ""
 
-#: includes/class-privacy.php:91
+#: includes/class-privacy.php:92
 msgid "Currency"
 msgstr ""
 
-#: includes/class-privacy.php:93
+#: includes/class-privacy.php:94
 msgid "Quoted shipping country"
 msgstr ""
 
-#: includes/class-privacy.php:94
+#: includes/class-privacy.php:95
 msgid "Accepted address (JSON)"
 msgstr ""
 
-#: includes/class-privacy.php:95
+#: includes/class-privacy.php:96
 msgid "Accepted billing address (JSON)"
 msgstr ""
 
-#: includes/class-privacy.php:96
+#: includes/class-privacy.php:97
 msgid "Expires at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:97
+#: includes/class-privacy.php:98
 msgid "Accepted at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:98
+#: includes/class-privacy.php:99
 msgid "Closed at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:99
+#: includes/class-privacy.php:100
 msgid "Offer email state"
 msgstr ""
 
-#: includes/class-privacy.php:100
+#: includes/class-privacy.php:101
 msgid "Offer email attempts"
 msgstr ""
 
-#: includes/class-privacy.php:101
+#: includes/class-privacy.php:102
 msgid "Email attempted at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:102
+#: includes/class-privacy.php:103
 msgid "Email accepted by transport at (UTC)"
 msgstr ""
 
-#: includes/class-privacy.php:103
+#: includes/class-privacy.php:104
 msgid "WooCommerce order ID"
 msgstr ""
 
-#: includes/class-privacy.php:119
+#: includes/class-privacy.php:120
 msgid "QuoteFlow requests"
 msgstr ""
 
-#: includes/class-privacy.php:119
+#: includes/class-privacy.php:120
 msgid "QuoteFlow offers"
 msgstr ""
 
-#: includes/class-privacy.php:180
+#: includes/class-privacy.php:181
 msgid "QuoteFlow retained active offers, records linked to orders or conversions, and records requiring review (including an unknown email result). Close active offers and review the related WooCommerce orders or mail logs before retrying erasure. WooCommerce manages order data separately."
 msgstr ""
 
-#: includes/class-privacy.php:258
+#: includes/class-privacy.php:259
 msgid "QuoteFlow privacy processing could not finish. A record may be in use. Wait for current operations to finish and retry; completed deletions are preserved."
 msgstr ""
 
@@ -857,27 +857,31 @@ msgstr ""
 msgid "Product tax settings changed. Ask for a new offer."
 msgstr ""
 
-#: includes/class-taxes.php:89
+#: includes/class-taxes.php:54
+msgid "The quoted amount is too small for the configured tax rounding. Ask for a new offer."
+msgstr ""
+
+#: includes/class-taxes.php:95
 msgid "The accepted tax calculation needs review."
 msgstr ""
 
-#: includes/class-taxes.php:105
+#: includes/class-taxes.php:111
 msgid "The order tax mode changed."
 msgstr ""
 
-#: includes/class-taxes.php:111
+#: includes/class-taxes.php:117
 msgid "The accepted price or tax calculation changed. Contact the store before paying."
 msgstr ""
 
-#: includes/class-taxes.php:119
+#: includes/class-taxes.php:125
 msgid "The accepted shipping taxes changed."
 msgstr ""
 
-#: includes/class-taxes.php:128
+#: includes/class-taxes.php:134
 msgid "Duplicate tax lines need review."
 msgstr ""
 
-#: includes/class-taxes.php:137
+#: includes/class-taxes.php:143
 msgid "The accepted order totals changed. Contact the store before paying."
 msgstr ""
 

@@ -5,6 +5,9 @@ on:
     paths-ignore: ['docs/**', 'README.md']
   pull_request:
     paths-ignore: ['docs/**', 'README.md']
+concurrency:
+  group: quoteflow-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -54,7 +57,10 @@ jobs:
       - name: Provision disposable store
         run: python scripts/setup-test-store.py --disposable
       - name: Complete functional suite
-        run: python scripts/verify.py compose.test.yaml --disposable
+        run: |
+          mkdir -p work/reports
+          set -o pipefail
+          python scripts/verify.py compose.test.yaml --disposable | tee work/reports/functional-suite.txt
       - name: Plugin Check
         run: python scripts/check-plugin.py compose.test.yaml --install
       - uses: actions/upload-artifact@v4

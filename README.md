@@ -28,7 +28,7 @@ El correo utiliza el transporte configurado en WordPress. Su aceptación por el 
 
 Los enlaces son privados. QuoteFlow guarda su hash. Las ofertas derivadas de solicitudes y las ofertas manuales nuevas permiten recuperar su enlace con las claves de WordPress. Cambiar esas claves puede impedir su recuperación; los enlaces ya compartidos conservan su validación hasta vencer. Ofertas manuales antiguas con tokens aleatorios requieren su enlace original.
 
-La conversión guarda su intención antes de crear el pedido y conserva un identificador único. Un reintento recupera ese pedido. Si no hay una coincidencia inequívoca, se detiene para revisión. Antes del pago se comprueban importes, impuestos, direcciones, opciones y stock.
+La conversión guarda su intención antes de crear el pedido y conserva un identificador único. Un reintento recupera ese pedido. Si no hay una coincidencia inequívoca, se detiene para revisión. Antes del pago se comprueban importes, impuestos, direcciones, opciones y stock. La aceptación y el pago usan la reserva atómica nativa de WooCommerce, respetando su configuración de gestión y tiempo de retención de stock. Las comprobaciones excluyen la reserva del propio pedido y las cancelaciones liberan la reserva mediante WooCommerce.
 
 ## Privacidad y datos
 

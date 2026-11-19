@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Provision only the named, local, fictitious M0 store. Never imports production data."""
-import argparse,hashlib,subprocess,sys,urllib.request
+import argparse,hashlib,re,subprocess,sys,urllib.request
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--disposable',action='store_true',required=True);args=p.parse_args()
 root=Path(__file__).resolve().parents[1]
@@ -28,7 +28,8 @@ if wp('theme','is-installed','twentytwentyfive',check=False).returncode:
 else: wp('theme','activate','twentytwentyfive')
 wp('language','core','install','es_AR')
 subprocess.run([sys.executable,str(root/'scripts/build.py')],check=True)
-archive=next((root/'dist').glob('*.zip'))
+version=re.search(r' \* Version: (\S+)',(root/'quoteflow-free.php').read_text())[1]
+archive=root/'dist'/f'quoteflow-free-{version}.zip'
 subprocess.run([*compose,'cp',str(archive),'wp:/tmp/quoteflow-free.zip'],check=True)
 print(wp('plugin','install','/tmp/quoteflow-free.zip','--force','--activate').stdout)
 print('Disposable store ready: http://127.0.0.1:18972')

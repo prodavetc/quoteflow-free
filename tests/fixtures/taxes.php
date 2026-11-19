@@ -62,6 +62,18 @@ try {
     }
     $p->set_tax_class('');$p->save();
     echo "Non-taxable, billing location, reduced/zero rates and shipping inheritance passed\n";
+    // A half-cent shipping tax must not increase the fixed quoted gross amount.
+    update_option('woocommerce_tax_classes',"Reduced rate\nZero rate\nQF rounding");
+    $ids[]=WC_Tax::_insert_tax_rate(['tax_rate_country'=>'US','tax_rate_state'=>'CA','tax_rate'=>'20.0000','tax_rate_name'=>'Half-cent fixture','tax_rate_priority'=>1,'tax_rate_compound'=>0,'tax_rate_shipping'=>1,'tax_rate_order'=>0,'tax_rate_class'=>'qf-rounding']);
+    WC_Cache_Helper::invalidate_cache_group('taxes');$p->set_tax_class('qf-rounding');$p->save();
+    update_option('woocommerce_shipping_tax_class','qf-rounding');update_option('woocommerce_tax_round_at_subtotal','yes');
+    foreach(['yes','no'] as $catalog){
+        update_option('woocommerce_prices_include_tax',$catalog);
+        $token=Offers::create($p->get_id(),1,'1.20','half-cent@example.test',0,null,'0.03','US');$order=Offers::accept($token,$address);
+        if($order->get_total()!=='1.23'){throw new Exception('Half-cent shipping changed the quote');}
+    }
+    $p->set_tax_class('');$p->save();update_option('woocommerce_shipping_tax_class','inherit');
+    echo "Half-cent inclusive shipping rounding passed\n";
     // Virtual goods require billing address while taxes are enabled.
     $p->set_virtual(true);$p->save();
     $token=Offers::create($p->get_id(),1,'127.05','virtual-tax@example.test');

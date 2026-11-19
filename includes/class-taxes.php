@@ -23,7 +23,7 @@ final class Taxes {
 		if ( $wpdb->last_error ) {
 			throw new RuntimeException( __( 'Tax settings could not be checked. Try again.', 'quoteflow-free' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are escaped at the UI boundary.
 		}
-		$options = array_map( 'get_option', array( 'woocommerce_tax_based_on', 'woocommerce_shipping_tax_class', 'woocommerce_tax_round_at_subtotal', 'woocommerce_price_num_decimals', 'woocommerce_tax_classes', 'woocommerce_default_country', 'woocommerce_store_postcode', 'woocommerce_store_city' ) );
+		$options = array_map( 'get_option', array( 'woocommerce_tax_based_on', 'woocommerce_shipping_tax_class', 'woocommerce_tax_round_at_subtotal', 'woocommerce_price_num_decimals', 'woocommerce_tax_classes', 'woocommerce_default_country', 'woocommerce_store_postcode', 'woocommerce_store_city', 'woocommerce_prices_include_tax' ) );
 		return hash( 'sha256', wp_json_encode( array( $rates, $locations, $options ) ) );
 	}
 
@@ -43,10 +43,16 @@ final class Taxes {
 		return wc_format_decimal( $amount, 6 );
 	}
 
-	private static function split( string $gross, array $rates ): array {
+	private static function split( string $gross, array $rates, bool $shipping = false ): array {
 		$taxes = array_map( array( self::class, 'decimal' ), WC_Tax::calc_tax( (float) $gross, $rates, true ) );
+		if ( $shipping ) {
+			// Shipping is one monetary charge; normalize each tax to WooCommerce currency precision.
+			$taxes = array_map( static fn( $tax ) => self::decimal( wc_round_tax_total( $tax ) ), $taxes );
+		}
 		$effective = 'yes' === get_option( 'woocommerce_tax_round_at_subtotal' ) ? array_sum( $taxes ) : array_sum( array_map( 'wc_round_tax_total', $taxes ) );
-		return array( 'net' => self::decimal( (float) $gross - $effective ), 'taxes' => $taxes );
+		$net = self::decimal( (float) $gross - $effective );
+		if ( (float) $net < 0 ) { throw new RuntimeException( __( 'The quoted amount is too small for the configured tax rounding. Ask for a new offer.', 'quoteflow-free' ) ); } // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Escaped at UI boundary.
+		return array( 'net' => 0.0 === (float) $net ? self::decimal( 0 ) : $net, 'taxes' => $taxes );
 	}
 
 	public static function plan( object $offer ): array {
@@ -77,7 +83,7 @@ final class Taxes {
 				}
 			}
 			$rates = null === $class ? array() : WC_Tax::find_shipping_rates( $address + array( 'tax_class' => $class ) );
-			$plan['shipping'] = self::split( $offer->shipping_total, $rates );
+			$plan['shipping'] = self::split( $offer->shipping_total, $rates, true );
 		}
 		return $plan;
 	}

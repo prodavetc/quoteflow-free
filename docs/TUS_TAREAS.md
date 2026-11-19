@@ -9,6 +9,7 @@ Paquete: QuoteFlow Free 1.0.0-rc.1. Hacer estas pruebas en staging, con datos fi
 - Instalar el ZIP y conservar una copia de seguridad de archivos y base antes de actualizar.
 - Configurar moneda, decimales, países de venta/entrega y las tasas que usa tu comercio.
 - Excluir las páginas con formularios y enlaces `qf_offer` de la caché externa. Los enlaces privados no deben registrarse en analítica ni compartirse en reportes públicos.
+- Revisar la gestión de stock y su tiempo de retención en WooCommerce; con la retención desactivada, no se mantiene una reserva temporal.
 - Mantener WordPress cron operativo o configurar su ejecución desde el hosting.
 
 Entregar: versiones de PHP/WordPress/WooCommerce, tema, plugins relevantes y resultado de instalación/actualización.
@@ -48,7 +49,7 @@ Ejecutar y registrar:
 1. Pago aprobado de una oferta física con impuestos y envío.
 2. Pago rechazado y nuevo intento sobre el mismo pedido.
 3. Pago pendiente y confirmación posterior por webhook.
-4. Doble clic en aceptar/pagar: un único pedido y un único cobro.
+4. Doble clic en aceptar/pagar: un único pedido y un único cobro. Probar también dos ofertas diferentes para la última unidad disponible.
 5. Redirección o autenticación adicional si la pasarela la utiliza.
 6. Cancelación y devolución desde WooCommerce, verificando estado y stock.
 7. Carrito mixto y producto variable con opciones correctas.
