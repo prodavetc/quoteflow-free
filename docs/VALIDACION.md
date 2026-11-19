@@ -10,6 +10,7 @@ Estado: candidata de staging. No equivale a aprobación para producción ni apro
 - Formulario público: producto virtual gravado, dirección de facturación obligatoria y pago nativo mediante transferencia local.
 - Privacidad: pedidos terminales anonimizados se conservan en WooCommerce y se elimina el par solicitud/oferta; pedidos activos protegidos. Bloqueo en curso: reintento con solo ID en cron y limpieza posterior comprobados.
 - Correo: capturador de WordPress y además protocolo SMTP real en loopback; rechazo del destinatario, reintento aceptado y contenido verificado. No se envió correo a destinatarios externos.
+- Actualización aislada desde el ZIP 0.12.0-dev sobre WordPress 7.0: columnas anteriores, enlaces privados, oferta de solicitud, pedido físico, direcciones y validación del pago conservados.
 - Idioma: carga del catálogo español desde WordPress y catálogo completo de las cadenas propias del plugin.
 - Compatibilidad adicional: creación, conversión y reintento en WordPress 7.0 y en PHP 8.4.27. La matriz de CI agrega ejecución completa sobre instalaciones limpias en PHP 8.3/8.4.
 - Plugin Check 2.2.0: cero errores en el análisis local; advertencias de SQL directo, ausencia de caché y otras advertencias revisables conservadas en el informe. Las supresiones específicas llevan su justificación en el código.
