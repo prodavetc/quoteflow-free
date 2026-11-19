@@ -94,18 +94,69 @@ final class Requests {
 		}
 	}
 
-	public static function inbox( int $page ): array {
+	public static function inbox_states(): array {
+		return array(
+			'' => __( 'All requests', 'quoteflow-free' ),
+			'pending' => __( 'Without an offer', 'quoteflow-free' ),
+			'offered' => __( 'Awaiting acceptance', 'quoteflow-free' ),
+			'expired' => __( 'Expired', 'quoteflow-free' ),
+			'creating' => __( 'Order awaiting review', 'quoteflow-free' ),
+			'converted' => __( 'Order created', 'quoteflow-free' ),
+			'rejected' => __( 'Declined by the buyer', 'quoteflow-free' ),
+			'canceled' => __( 'Canceled by the store', 'quoteflow-free' ),
+		);
+	}
+
+	public static function inbox_filters( string $search, string $state ): array {
+		return array(
+			'search' => mb_substr( trim( sanitize_text_field( $search ) ), 0, 254, 'UTF-8' ),
+			'state' => array_key_exists( $state, self::inbox_states() ) ? $state : '',
+		);
+	}
+
+	private static function inbox_where( string $search, string $state ): string {
+		global $wpdb;
+		$filters = self::inbox_filters( $search, $state );
+		$where = ' WHERE 1=1';
+		if ( '' !== $filters['search'] ) {
+			if ( preg_match( '/^#?([1-9][0-9]*)$/D', $filters['search'], $match ) ) {
+				$where .= $wpdb->prepare( ' AND r.id = %d', (int) $match[1] );
+			} else {
+				$where .= $wpdb->prepare( ' AND r.email LIKE %s', '%' . $wpdb->esc_like( $filters['search'] ) . '%' );
+			}
+		}
+		if ( 'pending' === $filters['state'] ) {
+			$where .= ' AND o.id IS NULL';
+		} elseif ( 'offered' === $filters['state'] || 'expired' === $filters['state'] ) {
+			$comparison = 'expired' === $filters['state'] ? '<=' : '>';
+			$where .= $wpdb->prepare( " AND o.state = 'offered' AND o.expires_at {$comparison} %s", gmdate( 'Y-m-d H:i:s' ) );
+		} elseif ( '' !== $filters['state'] ) {
+			$where .= $wpdb->prepare( ' AND o.state = %s', $filters['state'] );
+		}
+		return $where;
+	}
+
+	public static function inbox( int $page, string $search = '', string $state = '' ): array {
 		global $wpdb;
 		$requests = $wpdb->prefix . 'qf_requests';
 		$offers   = $wpdb->prefix . 'qf_offers';
+		$where    = self::inbox_where( $search, $state );
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT r.*, o.id AS offer_id, o.state AS offer_state, o.total, o.currency, o.expires_at, o.order_id, o.email_state
-				FROM {$requests} r LEFT JOIN {$offers} o ON o.request_id = r.id
+				FROM {$requests} r LEFT JOIN {$offers} o ON o.request_id = r.id {$where}
 				ORDER BY r.id DESC LIMIT 20 OFFSET %d",
 				( max( 1, $page ) - 1 ) * 20
 			)
 		);
+	}
+
+	public static function inbox_count( string $search = '', string $state = '' ): int {
+		global $wpdb;
+		$requests = $wpdb->prefix . 'qf_requests';
+		$offers   = $wpdb->prefix . 'qf_offers';
+		$where    = self::inbox_where( $search, $state );
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$requests} r LEFT JOIN {$offers} o ON o.request_id = r.id {$where}" );
 	}
 
 	public static function respond( int $request_id, string|array $total, string $shipping_total = '0', string $shipping_country = '' ): string {

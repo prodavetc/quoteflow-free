@@ -11,9 +11,19 @@ Plugin WooCommerce en desarrollo para recibir solicitudes de cotización, prepar
 
 La bandeja permite recuperar el enlace de una oferta creada desde una solicitud. Una respuesta repetida conserva la oferta original. El formulario independiente de creación de ofertas sigue disponible.
 
+## Bandeja del comerciante
+
+En **WooCommerce → QuoteFlow**, el campo **Buyer email or request number** permite buscar por correo completo, fragmento de correo o ID de solicitud, con o sin `#`. El filtro **Request status** se combina con la búsqueda y ofrece solicitudes sin oferta, ofertas pendientes de aceptación, vencidas, conversiones que requieren revisión, pedidos creados, rechazos y cancelaciones. **Clear filters** vuelve a la bandeja completa.
+
+La lista muestra el número de resultados y de páginas, con 20 solicitudes por página y las más recientes primero. Los enlaces conservan la búsqueda y el estado. Una página fuera del rango se ajusta a la última página disponible; una consulta sin resultados muestra cero solicitudes. La selección de filtros y la navegación son operaciones de lectura.
+
+Las ofertas vencidas se calculan por su fecha UTC dentro del estado pendiente de aceptación. Los pedidos creados, los rechazos y las cancelaciones conservan su propio estado aunque su fecha de oferta ya haya pasado. **Order created** indica que se creó el pedido; su estado de pago se consulta en WooCommerce.
+
+Las solicitudes convertidas muestran **Open order**, cuando el operador tiene permiso para editar ese pedido. El enlace abre la pantalla nativa de WooCommerce, tanto con HPOS como con almacenamiento clásico. **View offer** conserva su función de recuperar el enlace privado desde una solicitud, con los filtros actuales. La bandeja lista solicitudes; las ofertas manuales sin solicitud mantienen su recorrido de creación y enlace compartido.
+
 ## Alcance de esta versión
 
-Versión de desarrollo 0.9.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.10.0-dev. Admite entre 1 y 20 combinaciones diferentes de productos y opciones, con productos simples o variables físicos y virtuales por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
@@ -105,6 +115,7 @@ python3 tests/delivery.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/variations.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/privacy.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/billing.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/inbox.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -124,6 +135,8 @@ Desde la versión 0.7, los campos de dirección usan la función de renderizado 
 La prueba de privacidad utiliza los hooks registrados y el AJAX nativo de WordPress. Comprueba exportación por correo, exclusión de claves privadas, permisos y nonces, eliminación de más de un lote, reintentos, lectura de registros anteriores y conservación de pedidos con HPOS y almacenamiento clásico. También comprueba bloqueos frente a respuestas, correos y decisiones, y borrados concurrentes. Intercepta temporalmente el correo para evitar entregas externas.
 
 La prueba de facturación cubre selección de opciones sin modificar la oferta, formularios por país, entrega en EE. UU. con facturación en Reino Unido, países no permitidos, datos inválidos, aceptación concurrente, reintentos, recuperación y pago. Comprueba también la exportación de ambas direcciones y la compatibilidad con snapshots anteriores, con HPOS y almacenamiento clásico. La revisión visual sigue pendiente.
+
+La prueba de bandeja cubre todos los estados, búsquedas por correo e ID, combinación de filtros, caracteres literales como `%` y `_`, páginas fuera del rango, más de una página y el límite exacto de 20 resultados. Comprueba los enlaces nativos de pedidos y la recuperación de una oferta desde una lista filtrada, con HPOS y almacenamiento clásico.
 
 Quedan pendientes impuestos, tarifas de envío en tiempo real, integración nativa con otros bloques, entrega con un servicio real de correo, políticas de conservación y borrado coordinado de registros convertidos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 

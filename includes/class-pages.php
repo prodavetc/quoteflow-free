@@ -181,10 +181,31 @@ final class Pages {
 	}
 
 	private static function inbox(): void {
-		$page     = max( 1, (int) self::input( INPUT_GET, 'qf_page' ) );
-		$requests = Requests::inbox( $page );
+		$filters = Requests::inbox_filters( self::input( INPUT_GET, 'qf_search' ), self::input( INPUT_GET, 'qf_status' ) );
+		$total = Requests::inbox_count( $filters['search'], $filters['state'] );
+		$pages = max( 1, (int) ceil( $total / 20 ) );
+		$page = min( $pages, max( 1, (int) self::input( INPUT_GET, 'qf_page' ) ) );
+		$requests = Requests::inbox( $page, $filters['search'], $filters['state'] );
+		$args = array( 'page' => 'quoteflow', 'qf_search' => $filters['search'], 'qf_status' => $filters['state'] );
 		?>
 		<h2><?php esc_html_e( 'Quote requests', 'quoteflow-free' ); ?></h2>
+		<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+			<input type="hidden" name="page" value="quoteflow">
+			<p><label for="qf-search"><?php esc_html_e( 'Buyer email or request number', 'quoteflow-free' ); ?></label>
+				<input id="qf-search" name="qf_search" type="search" maxlength="254" value="<?php echo esc_attr( $filters['search'] ); ?>">
+				<label for="qf-status"><?php esc_html_e( 'Request status', 'quoteflow-free' ); ?></label>
+				<select id="qf-status" name="qf_status">
+					<?php foreach ( Requests::inbox_states() as $state => $label ) : ?>
+						<option value="<?php echo esc_attr( $state ); ?>" <?php selected( $state, $filters['state'] ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				<button type="submit" class="button"><?php esc_html_e( 'Filter requests', 'quoteflow-free' ); ?></button>
+				<a href="<?php echo esc_url( add_query_arg( 'page', 'quoteflow', admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Clear filters', 'quoteflow-free' ); ?></a>
+			</p>
+		</form>
+		<p id="qf-inbox-summary"><?php
+			/* translators: 1: Matching requests, 2: Current page, 3: Total pages. */
+			echo esc_html( sprintf( _n( '%1$d request. Page %2$d of %3$d.', '%1$d requests. Page %2$d of %3$d.', $total, 'quoteflow-free' ), $total, $page, $pages ) );
+		?></p>
 		<?php if ( ! $requests ) : ?>
 			<p><?php esc_html_e( 'No requests on this page.', 'quoteflow-free' ); ?></p>
 		<?php else : ?>
@@ -211,6 +232,7 @@ final class Pages {
 								<p><?php echo wp_kses_post( wc_price( $request->total, array( 'currency' => $request->currency ) ) ); ?>
 								· <?php echo esc_html( self::offer_status( $request ) ); ?></p>
 								<p><?php echo esc_html( self::email_status( $request->email_state ) ); ?></p>
+								<?php self::order_link( (int) $request->order_id ); ?>
 							<?php endif; ?>
 							<form method="post">
 								<?php wp_nonce_field( 'qf_create_offer' ); ?>
@@ -238,12 +260,28 @@ final class Pages {
 		<?php endif; ?>
 		<p>
 			<?php if ( $page > 1 ) : ?>
-				<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_page' => $page - 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Previous requests', 'quoteflow-free' ); ?></a>
+				<a class="button" href="<?php echo esc_url( add_query_arg( $args + array( 'qf_page' => $page - 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Previous requests', 'quoteflow-free' ); ?></a>
 			<?php endif; ?>
-			<?php if ( count( $requests ) === 20 ) : ?>
-				<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'quoteflow', 'qf_page' => $page + 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Older requests', 'quoteflow-free' ); ?></a>
+			<?php if ( $page < $pages ) : ?>
+				<a class="button" href="<?php echo esc_url( add_query_arg( $args + array( 'qf_page' => $page + 1 ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Older requests', 'quoteflow-free' ); ?></a>
 			<?php endif; ?>
 		</p>
+		<?php
+	}
+
+	private static function order_link( int $order_id ): void {
+		if ( $order_id < 1 || ! current_user_can( 'edit_shop_order', $order_id ) ) {
+			return;
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+		?>
+		<p><a class="button qf-order-link" href="<?php echo esc_url( $order->get_edit_order_url() ); ?>"><?php
+			/* translators: %s: WooCommerce order number. */
+			echo esc_html( sprintf( __( 'Open order #%s', 'quoteflow-free' ), $order->get_order_number() ) );
+		?></a></p>
 		<?php
 	}
 
