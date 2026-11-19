@@ -6,7 +6,7 @@ from decimal import Decimal
 import json
 import re
 from urllib.parse import parse_qs, urlsplit
-from support import BASE, Forms, browser, form_where, request, request_row, wp
+from support import BASE, Forms, browser, form_where, request, request_row, reset_request_throttles, wp
 
 
 def offer_link(html):
@@ -39,9 +39,7 @@ cart_page = wp("option", "get", "woocommerce_cart_page_id")
 cart_content = wp("post", "get", cart_page, "--field=post_content")
 atexit.register(wp, "post", "update", cart_page, "--post_content=" + cart_content)
 wp("option", "update", "woocommerce_coming_soon", "no")
-wp("eval", """global $wpdb; $wpdb->query("UPDATE {$wpdb->prefix}qf_requests
-    SET rate_key = SHA2(CONCAT('previous-multi-', id), 256) WHERE email = 'multi@example.test'");""")
-
+reset_request_throttles()
 for storage in ("enable", "disable"):
     if storage == "disable":
         wp("post", "update", cart_page, "--post_content=[woocommerce_cart]")

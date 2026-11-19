@@ -32,6 +32,9 @@ final class Offers {
 				items_json longtext DEFAULT NULL,
 				quantity int unsigned NOT NULL,
 				total decimal(20,6) NOT NULL,
+				shipping_total decimal(20,6) NOT NULL DEFAULT 0,
+				shipping_country char(2) NOT NULL DEFAULT '',
+				accepted_address_json longtext DEFAULT NULL,
 				currency char(3) NOT NULL,
 				email varchar(254) NOT NULL,
 				expires_at datetime NOT NULL,
@@ -52,8 +55,17 @@ final class Offers {
 		);
 	}
 
-	public static function create( int $product_id, int $quantity, string $total, string $email, int $request_id = 0, ?string $token = null ): string {
-		return self::create_items( array( array( 'product_id' => $product_id, 'quantity' => $quantity, 'total' => $total ) ), $email, $request_id, $token );
+	public static function create(
+		int $product_id,
+		int $quantity,
+		string $total,
+		string $email,
+		int $request_id = 0,
+		?string $token = null,
+		string $shipping_total = '0',
+		string $shipping_country = ''
+	): string {
+		return self::create_items( array( array( 'product_id' => $product_id, 'quantity' => $quantity, 'total' => $total ) ), $email, $request_id, $token, $shipping_total, $shipping_country );
 	}
 
 	public static function snapshot( array $items ): array {
@@ -70,9 +82,10 @@ final class Offers {
 			}
 			$product    = self::product( $item['product_id'], $item['quantity'] );
 			$snapshot[] = array(
-				'product_id'    => $product->get_id(),
-				'product_label' => $product->get_name(),
-				'quantity'      => $item['quantity'],
+				'product_id'     => $product->get_id(),
+				'product_label'  => $product->get_name(),
+				'quantity'       => $item['quantity'],
+				'needs_shipping' => $product->needs_shipping(),
 			);
 			$seen[ $item['product_id'] ] = true;
 		}
@@ -99,12 +112,16 @@ final class Offers {
 		return array( $item );
 	}
 
-	private static function amount( string $value ): int {
+	private static function amount( string $value, bool $allow_zero = false ): int {
 		$parts    = explode( '.', $value );
 		$decimals = wc_get_price_decimals();
 		if ( $decimals > 6 || ! preg_match( '/^[0-9]{1,12}(?:\.[0-9]{1,6})?$/D', $value )
-			|| strlen( $parts[1] ?? '' ) > $decimals || '' === trim( $value, '0.' ) ) {
-			throw new RuntimeException( __( 'Enter a valid positive total for each product.', 'quoteflow-free' ) );
+			|| strlen( $parts[1] ?? '' ) > $decimals || ( ! $allow_zero && '' === trim( $value, '0.' ) ) ) {
+			throw new RuntimeException(
+				$allow_zero
+					? __( 'Enter a shipping total of zero or more, using the store currency precision.', 'quoteflow-free' )
+					: __( 'Enter a valid positive total for each product.', 'quoteflow-free' )
+			);
 		}
 		return (int) ( $parts[0] . str_pad( $parts[1] ?? '', 6, '0' ) );
 	}
@@ -113,7 +130,14 @@ final class Offers {
 		return sprintf( '%d.%06d', intdiv( $amount, 1000000 ), $amount % 1000000 );
 	}
 
-	public static function create_items( array $items, string $email, int $request_id = 0, ?string $token = null ): string {
+	public static function create_items(
+		array $items,
+		string $email,
+		int $request_id = 0,
+		?string $token = null,
+		string $shipping_total = '0',
+		string $shipping_country = ''
+	): string {
 		global $wpdb;
 		$snapshot = self::snapshot( $items );
 		if ( ! is_email( $email ) || strlen( $email ) > 254 ) {
@@ -132,6 +156,18 @@ final class Offers {
 			}
 		}
 		unset( $item );
+		$delivery = in_array( true, array_column( $snapshot, 'needs_shipping' ), true );
+		$shipping = self::amount( $shipping_total, true );
+		if ( ! $delivery && $shipping > 0 ) {
+			throw new RuntimeException( __( 'Shipping charges require a physical product.', 'quoteflow-free' ) );
+		}
+		if ( $delivery && ! isset( Delivery::countries()[ $shipping_country ] ) ) {
+			throw new RuntimeException( __( 'Choose a shipping country supported by the store.', 'quoteflow-free' ) );
+		}
+		$sum += $shipping;
+		if ( $sum > 999999999999999999 ) {
+			throw new RuntimeException( __( 'The offer total is too large.', 'quoteflow-free' ) );
+		}
 		$first  = $snapshot[0];
 		$token  = $token ?? bin2hex( random_bytes( 32 ) );
 		$result = $wpdb->insert(
@@ -146,6 +182,8 @@ final class Offers {
 				'quantity'      => $first['quantity'],
 				'items_json'    => wp_json_encode( $snapshot ),
 				'total'         => self::decimal( $sum ),
+				'shipping_total' => self::decimal( $shipping ),
+				'shipping_country' => $delivery ? $shipping_country : '',
 				'currency'      => get_woocommerce_currency(),
 				'email'         => $email,
 				'expires_at'    => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
@@ -173,11 +211,11 @@ final class Offers {
 	public static function product( int $product_id, int $quantity ): \WC_Product {
 		$product = wc_get_product( $product_id );
 		if ( $quantity < 1 || $quantity > 100 || wc_tax_enabled() || ! $product
-			|| ! $product->is_type( 'simple' ) || ! $product->is_virtual()
+			|| ! $product->is_type( 'simple' )
 			|| 'publish' !== $product->get_status() || ! $product->is_purchasable()
 			|| ( $product->is_sold_individually() && $quantity > 1 )
 			|| ! $product->is_in_stock() || ! $product->has_enough_stock( $quantity ) ) {
-			throw new RuntimeException( __( 'Use an available simple virtual product in a store with taxes disabled.', 'quoteflow-free' ) );
+			throw new RuntimeException( __( 'Use an available simple product in a store with taxes disabled.', 'quoteflow-free' ) );
 		}
 		return $product;
 	}
@@ -222,7 +260,7 @@ final class Offers {
 		}
 	}
 
-	public static function accept( string $token ): WC_Order {
+	public static function accept( string $token, array $address = array() ): WC_Order {
 		global $wpdb;
 		$offer = self::find( $token );
 		if ( ! $offer || self::expired( $offer ) ) {
@@ -251,15 +289,19 @@ final class Offers {
 			if ( 'creating' === $offer->state ) {
 				$order = self::recover( $offer );
 			} elseif ( 'offered' === $offer->state ) {
-				foreach ( self::items( $offer ) as $item ) {
-					self::product( (int) $item['product_id'], (int) $item['quantity'] );
-				}
+				self::validate_items( $offer );
+				$address = Delivery::validate( $offer, $address );
+				$offer->accepted_address_json = wp_json_encode( $address );
 				if ( get_woocommerce_currency() !== $offer->currency ) {
 					throw new RuntimeException( __( 'The store currency changed. Ask for a new offer.', 'quoteflow-free' ) );
 				}
 				$claimed = $wpdb->update(
 					self::table(),
-					array( 'state' => 'creating', 'accepted_at' => gmdate( 'Y-m-d H:i:s' ) ),
+					array(
+						'state' => 'creating',
+						'accepted_at' => gmdate( 'Y-m-d H:i:s' ),
+						'accepted_address_json' => $offer->accepted_address_json,
+					),
 					array( 'id' => $offer->id, 'state' => 'offered' )
 				);
 				if ( 1 !== $claimed ) {
@@ -295,6 +337,16 @@ final class Offers {
 		$order->set_billing_email( $offer->email );
 		$order->set_currency( $offer->currency );
 		$order->set_prices_include_tax( false );
+		if ( Delivery::required( $offer ) ) {
+			$address = Delivery::accepted( $offer );
+			$order->set_address( $address, 'shipping' );
+			$order->set_address( $address, 'billing' );
+			$shipping = new \WC_Order_Item_Shipping();
+			$shipping->set_method_id( 'quoteflow' );
+			$shipping->set_method_title( __( 'Quoted shipping', 'quoteflow-free' ) );
+			$shipping->set_total( $offer->shipping_total );
+			$order->add_item( $shipping );
+		}
 		foreach ( self::items( $offer ) as $item ) {
 			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
 			$order->add_product(
@@ -347,6 +399,7 @@ final class Offers {
 			|| wc_format_decimal( $offer->total, 6 ) !== wc_format_decimal( $order->get_total(), 6 ) ) {
 			throw self::reconciliation_required();
 		}
+		Delivery::verify_order( $offer, $order );
 		foreach ( $expected as $position => $line ) {
 			if ( (int) $line['product_id'] !== $items[ $position ]->get_product_id()
 				|| (int) $line['quantity'] !== $items[ $position ]->get_quantity()
@@ -370,11 +423,18 @@ final class Offers {
 				throw self::reconciliation_required();
 			}
 			self::verify_order( $offer, $order );
-			foreach ( self::items( $offer ) as $item ) {
-				self::product( (int) $item['product_id'], (int) $item['quantity'] );
-			}
+			self::validate_items( $offer );
 		} catch ( RuntimeException $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
+		}
+	}
+
+	private static function validate_items( object $offer ): void {
+		foreach ( self::items( $offer ) as $item ) {
+			$product = self::product( (int) $item['product_id'], (int) $item['quantity'] );
+			if ( $product->needs_shipping() !== (bool) ( $item['needs_shipping'] ?? false ) ) {
+				throw new RuntimeException( __( 'Product delivery requirements changed. Ask the store for a new offer.', 'quoteflow-free' ) );
+			}
 		}
 	}
 

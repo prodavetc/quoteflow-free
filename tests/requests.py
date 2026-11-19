@@ -4,7 +4,7 @@ from html import unescape
 import json
 import re
 from urllib.parse import parse_qs, urlsplit
-from support import BASE, Forms, browser, form_where, request, request_row, wp
+from support import BASE, Forms, browser, form_where, request, request_row, reset_request_throttles, wp
 
 admin = browser()
 request(admin, BASE + "/wp-login.php")
@@ -14,9 +14,8 @@ assert request(admin, BASE + "/wp-login.php", {
 admin_url = BASE + "/wp-admin/admin.php?page=quoteflow"
 
 # Repeated runs reset only throttle keys for this test's fictional contact.
-wp("eval", """global $wpdb; $wpdb->query("UPDATE {$wpdb->prefix}qf_requests
-    SET rate_key = SHA2(CONCAT('previous-test-', id), 256) WHERE email = 'flow@example.test'");""")
-assert wp("option", "get", "qf_schema_version") == "0.5.0-dev"
+reset_request_throttles()
+assert wp("option", "get", "qf_schema_version") == "0.6.0-dev"
 
 wp("option", "update", "woocommerce_coming_soon", "no")
 

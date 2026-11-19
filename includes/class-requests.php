@@ -103,7 +103,7 @@ final class Requests {
 		);
 	}
 
-	public static function respond( int $request_id, string|array $total ): string {
+	public static function respond( int $request_id, string|array $total, string $shipping_total = '0', string $shipping_country = '' ): string {
 		global $wpdb;
 		$table   = $wpdb->prefix . 'qf_requests';
 		$request = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $request_id ) );
@@ -134,7 +134,7 @@ final class Requests {
 				$item['total'] = $totals[ $position ];
 			}
 			unset( $item );
-			return Offers::create_items( $items, $request->email, $request_id, $token );
+			return Offers::create_items( $items, $request->email, $request_id, $token, $shipping_total, $shipping_country );
 		} finally {
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		}

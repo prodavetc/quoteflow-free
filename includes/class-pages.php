@@ -60,13 +60,22 @@ final class Pages {
 					$request_id = (int) self::input( INPUT_POST, 'request_id' );
 					if ( $request_id > 0 ) {
 						$totals = filter_input( INPUT_POST, 'totals', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-						self::$token = Requests::respond( $request_id, is_array( $totals ) ? $totals : self::input( INPUT_POST, 'total' ) );
+						self::$token = Requests::respond(
+							$request_id,
+							is_array( $totals ) ? $totals : self::input( INPUT_POST, 'total' ),
+							self::input( INPUT_POST, 'shipping_total' ) ?: '0',
+							self::input( INPUT_POST, 'shipping_country' )
+						);
 					} else {
 						self::$token = Offers::create(
 							(int) self::input( INPUT_POST, 'product_id' ),
 							(int) self::input( INPUT_POST, 'quantity' ),
 							self::input( INPUT_POST, 'total' ),
-							self::input( INPUT_POST, 'email' )
+							self::input( INPUT_POST, 'email' ),
+							0,
+							null,
+							self::input( INPUT_POST, 'shipping_total' ) ?: '0',
+							self::input( INPUT_POST, 'shipping_country' )
 						);
 					}
 				}
@@ -87,7 +96,7 @@ final class Pages {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'QuoteFlow', 'quoteflow-free' ); ?></h1>
-			<p><?php esc_html_e( 'Use a simple virtual product in a store with taxes disabled. The offer expires in 24 hours.', 'quoteflow-free' ); ?></p>
+			<p><?php esc_html_e( 'Use simple products in a store with taxes disabled. Quote shipping and a destination country for physical products. Offers expire in 24 hours.', 'quoteflow-free' ); ?></p>
 			<?php if ( $error ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
 			<?php endif; ?>
@@ -109,6 +118,7 @@ final class Pages {
 				<p><label><?php esc_html_e( 'Quantity', 'quoteflow-free' ); ?> <input name="quantity" type="number" min="1" max="100" value="1" required></label></p>
 				<p><label><?php esc_html_e( 'Negotiated total', 'quoteflow-free' ); ?> <input name="total" inputmode="decimal" required></label></p>
 				<p><label><?php esc_html_e( 'Buyer billing email', 'quoteflow-free' ); ?> <input name="email" type="email" maxlength="254" required></label></p>
+				<?php Delivery::quote_fields(); ?>
 				<?php submit_button( __( 'Create offer', 'quoteflow-free' ) ); ?>
 			</form>
 		</div>
@@ -214,6 +224,9 @@ final class Pages {
 											<input name="<?php echo esc_attr( count( $items ) === 1 ? 'total' : "totals[{$position}]" ); ?>" inputmode="decimal" required>
 										</label></p>
 									<?php endforeach; ?>
+									<?php if ( Delivery::required( $request ) ) : ?>
+										<?php Delivery::quote_fields(); ?>
+									<?php endif; ?>
 								<?php endif; ?>
 								<button class="button" type="submit"><?php echo $request->offer_id ? esc_html__( 'View offer', 'quoteflow-free' ) : esc_html__( 'Create offer', 'quoteflow-free' ); ?></button>
 							</form>
@@ -279,7 +292,8 @@ final class Pages {
 					Offers::close( $token, 'rejected' );
 					$offer = Offers::find( $token );
 				} else {
-					$order = Offers::accept( $token );
+					$address = filter_input( INPUT_POST, 'delivery', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+					$order = Offers::accept( $token, is_array( $address ) ? $address : array() );
 					if ( ! $order->needs_payment() ) {
 						wp_die( esc_html__( 'This order no longer needs payment.', 'quoteflow-free' ), '', array( 'response' => 200 ) );
 					}
@@ -322,7 +336,12 @@ final class Pages {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
-			<p><?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
+			<?php if ( Delivery::required( $offer ) ) : ?>
+				<p><?php esc_html_e( 'Quoted shipping', 'quoteflow-free' ); ?>
+					<?php echo wp_kses_post( wc_price( $offer->shipping_total, array( 'currency' => $offer->currency ) ) ); ?>
+					· <?php echo esc_html( Delivery::countries()[ $offer->shipping_country ] ?? $offer->shipping_country ); ?></p>
+			<?php endif; ?>
+			<p><?php esc_html_e( 'Total', 'quoteflow-free' ); ?> <?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
 			<?php if ( in_array( $offer->state, array( 'rejected', 'canceled' ), true ) ) : ?>
 				<p role="status"><?php echo 'rejected' === $offer->state
 					? esc_html__( 'You declined this offer. Contact the store if you need a new quote.', 'quoteflow-free' )
@@ -330,9 +349,10 @@ final class Pages {
 			<?php else : ?>
 				<form method="post">
 					<?php wp_nonce_field( 'qf_accept_' . $token, 'qf_nonce', false ); ?>
+					<?php Delivery::form( $offer ); ?>
 					<button type="submit" name="decision" value="accept"><?php esc_html_e( 'Accept and continue to payment', 'quoteflow-free' ); ?></button>
 					<?php if ( 'offered' === $offer->state ) : ?>
-						<button type="submit" name="decision" value="decline"><?php esc_html_e( 'Decline offer', 'quoteflow-free' ); ?></button>
+						<button type="submit" name="decision" value="decline" formnovalidate><?php esc_html_e( 'Decline offer', 'quoteflow-free' ); ?></button>
 					<?php endif; ?>
 				</form>
 			<?php endif; ?>

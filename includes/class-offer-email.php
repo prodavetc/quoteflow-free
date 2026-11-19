@@ -100,6 +100,11 @@ final class Offer_Email {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php if ( Delivery::required( $offer ) ) : ?>
+			<p><?php esc_html_e( 'Quoted shipping', 'quoteflow-free' ); ?>
+				<?php echo wp_kses_post( wc_price( $offer->shipping_total, array( 'currency' => $offer->currency ) ) ); ?>
+				· <?php echo esc_html( Delivery::countries()[ $offer->shipping_country ] ?? $offer->shipping_country ); ?></p>
+		<?php endif; ?>
 		<p><strong><?php esc_html_e( 'Total', 'quoteflow-free' ); ?></strong> <?php echo wp_kses_post( wc_price( $offer->total, array( 'currency' => $offer->currency ) ) ); ?></p>
 		<p>
 			<?php

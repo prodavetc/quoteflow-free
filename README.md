@@ -13,13 +13,23 @@ La bandeja permite recuperar el enlace de una oferta creada desde una solicitud.
 
 ## Alcance de esta versión
 
-Versión de desarrollo 0.5.0-dev. Admite entre 1 y 20 productos simples virtuales diferentes por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
+Versión de desarrollo 0.6.0-dev. Admite entre 1 y 20 productos simples físicos o virtuales diferentes por solicitud u oferta, compradores invitados, tiendas con impuestos desactivados y ofertas de 24 horas. Cada importe es el total negociado para la cantidad de su línea. El total de la oferta suma esos importes y el envío cotizado. El comerciante decide cuándo enviar la oferta y la tienda gestiona el pago.
 
 El formulario se agrega después del formulario clásico de compra. También se puede insertar con un bloque Shortcode de WordPress usando `[quoteflow_request product_id="123"]`, donde 123 es el ID de un producto compatible. La integración automática de producto se verificó con el tema de bloques Twenty Twenty-Five y el bloque WooCommerce Add to Cart Form. El carrito incorpora un formulario para cotizar todos sus productos tanto con el bloque Cart como con el shortcode clásico de WooCommerce. Para otra página, insertar [quoteflow_request cart="yes"] en un bloque Shortcode.
 
 Las solicitudes admiten cantidades enteras de 1 a 100 por producto, correo y una nota de hasta 2000 caracteres. El servidor valida el producto, protege el formulario con nonce y campo antispam, y limita cada dirección de conexión a cinco solicitudes por ventana de diez minutos. Guarda una huella temporal derivada de la dirección y la ventana. Si la tienda usa un proxy, revisar su configuración antes de la beta para evitar compartir el límite entre compradores.
 
 Las páginas de producto y las páginas con el shortcode envían encabezados de exclusión de caché. Configurar también la exclusión en cualquier caché externa que ignore estos encabezados.
+
+## Envío de productos físicos
+
+Al responder una solicitud de productos físicos, el comerciante completa **Quoted shipping total** y **Shipping country**. El coste puede ser cero para envío gratuito. El país debe estar habilitado para venta y envío en WooCommerce. En una oferta creada sin solicitud, estos campos se completan junto al producto y su precio.
+
+La página y el correo de la oferta muestran el envío y el país de destino. Antes de aceptar, el comprador completa la dirección correspondiente a ese país. El plugin valida los campos obligatorios según WooCommerce, el estado o provincia y el código postal. Esa dirección se utiliza para entrega y facturación.
+
+La primera aceptación guarda la dirección y el pedido obtiene una línea **Quoted shipping** con el importe acordado. Los reintentos recuperan ese pedido y su dirección aceptada. Un cambio de destino requiere una nueva oferta. Antes del pago se comprueban los importes y la dirección, incluso cuando una alteración conserva el total general.
+
+Este flujo usa un precio de envío fijado por el comerciante para el país cotizado. El cálculo de tarifas de transportistas en tiempo real queda pendiente. Las ofertas anteriores creadas con productos virtuales se interpretan con envío cero. Si cambia el requisito de entrega de un producto después de cotizar, se debe preparar otra oferta.
 
 ## Rechazo y cancelación
 
@@ -57,6 +67,7 @@ python3 tests/requests.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/multiline.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/mail_flow.py RUTA_AL_COMPOSE_DE_M0
 python3 tests/decisions.py RUTA_AL_COMPOSE_DE_M0
+python3 tests/delivery.py RUTA_AL_COMPOSE_DE_M0
 ```
 
 Las pruebas cambian el modo de almacenamiento entre HPOS y clásico, habilitan el acceso público de la tienda local y crean datos ficticios. Usar exclusivamente la tienda de pruebas.
@@ -67,7 +78,9 @@ La prueba de correo instala temporalmente un capturador local que intercepta tod
 
 La prueba de decisiones cubre rechazo, cancelación, permisos, confirmación, bloqueo de correos y concurrencia frente a la aceptación en ambos almacenes de pedidos.
 
-Quedan pendientes productos físicos y variables, impuestos, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
+La prueba de entrega cubre solicitud de un producto físico, país cotizado, dirección obligatoria, importe de envío, recuperación de la conversión, correo capturado y protección del pago ante cambios. También cubre un pedido mixto con envío gratuito.
+
+Quedan pendientes productos variables, impuestos, tarifas de envío en tiempo real, direcciones de entrega y facturación distintas, integración nativa con otros bloques, entrega con un servicio real de correo, privacidad y borrado de datos, revisión visual y certificación con una pasarela en sandbox antes de la beta.
 
 ## Desarrollo y producción
 

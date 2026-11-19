@@ -71,3 +71,10 @@ def request_row(submission):
     return json.loads(wp("eval", f"""global $wpdb;
         echo wp_json_encode($wpdb->get_results("SELECT * FROM {{$wpdb->prefix}}qf_requests WHERE submission_id = '{submission}'"));
     """))
+
+
+def reset_request_throttles():
+    """Reset only known fictional contacts in the disposable store."""
+    wp("eval", """global $wpdb; $wpdb->query("UPDATE {$wpdb->prefix}qf_requests
+        SET rate_key = SHA2(CONCAT('previous-test-', id), 256)
+        WHERE email IN ('flow@example.test','multi@example.test','physical@example.test')");""")
